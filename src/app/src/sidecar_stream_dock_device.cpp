@@ -65,9 +65,18 @@ namespace {
 
     if (codename == "akp032") {
         // AKP032 side rocker switches:
-        // Left wheel:  0x21 = UP (Prev Page),    0x23 = DOWN (Next Page)
-        // Right wheel: 0x24 = UP (Prev Profile), 0x26 = DOWN (Next Profile)
-        if (code == 0x21 || code == 0x23 || code == 0x24 || code == 0x26) {
+        // Left wheel:  0x21 = UP, 0x22 = CENTER CLICK, 0x23 = DOWN
+        // Right wheel: 0x24 = UP, 0x25 = CENTER CLICK, 0x26 = DOWN
+        if (code == 0x21 || code == 0x22 || code == 0x23 ||
+            code == 0x24 || code == 0x25 || code == 0x26) {
+            if (code == 0x22) {
+                e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 0, state};
+                return e;
+            }
+            if (code == 0x25) {
+                e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 1, state};
+                return e;
+            }
             if (state == 1) { // Deflection press
                 if (code == 0x21) {
                     e = {Kind::EncoderTurned, 0, -1};
