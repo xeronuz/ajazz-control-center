@@ -102,7 +102,7 @@ pub fn key_image_format(family: Family) -> ImageFormat {
         },
         Family::Akp032 => ImageFormat {
             mode: ImageMode::JPEG,
-            size: (128, 128),
+            size: (96, 96),
             rotation: ImageRotation::Rot180,
             mirror: ImageMirroring::None,
         },
@@ -193,9 +193,9 @@ mod tests {
     }
 
     #[test]
-    fn akp032_key_format_is_128_rot180() {
+    fn akp032_key_format_is_96_rot180() {
         let f = key_image_format(Family::Akp032);
-        assert_eq!(f.size, (128, 128));
+        assert_eq!(f.size, (96, 96));
         assert!(matches!(f.rotation, ImageRotation::Rot180));
         assert!(matches!(f.mirror, ImageMirroring::None));
     }
