@@ -149,16 +149,7 @@ namespace {
     default:
         // Physical LCD keys report their 1-based index directly (1..32).
         if (code >= 1 && code <= 32) {
-            std::uint8_t mappedCode = code;
-            if (codename == "akp032") {
-                // Invert physical bottom-up rows back to UI top-to-bottom row order
-                std::uint8_t const zero = static_cast<std::uint8_t>(code - 1);
-                std::uint8_t const row = zero / 8;
-                std::uint8_t const col = zero % 8;
-                std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
-                mappedCode = static_cast<std::uint8_t>(invertedRow * 8 + col + 1);
-            }
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, mappedCode, state};
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
             return e;
         }
         return std::nullopt;
