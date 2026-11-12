@@ -93,7 +93,7 @@ TEST_CASE("SidecarStreamDockDevice constructs for AKP032 with 32 keys and 4x8 gr
     REQUIRE_FALSE(it->hasTouchStrip);
 
     SidecarStreamDockDevice dev(*it, DeviceId{it->vendorId, it->productId, "TEST-AKP032"});
-    REQUIRE(dev.displayInfo().keyCount == 32);
+    REQUIRE(dev.descriptor().keyCount == 32);
     REQUIRE(dev.displayInfo().keyRows == 4);
     REQUIRE(dev.displayInfo().keyCols == 8);
 }
