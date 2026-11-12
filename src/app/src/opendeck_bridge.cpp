@@ -874,10 +874,8 @@ QString OpenDeckBridge::handle(QString const& command, QString const& argsJson) 
                 }
                 auto const visual =
                     keyStateFromActionStateJson(args.value(QStringLiteral("state")).toObject());
-                if (m_profiles->setInstanceStateVisual(
-                        ctl, pos, args.value(QStringLiteral("index")).toInt(), visual)) {
-                    emit event(QStringLiteral("rerender_images"), QStringLiteral("{}"));
-                }
+                m_profiles->setInstanceStateVisual(
+                    ctl, pos, args.value(QStringLiteral("index")).toInt(), visual);
             }
         }
         return str(QJsonValue(QJsonValue::Null));

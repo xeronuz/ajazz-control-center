@@ -49,6 +49,8 @@ struct KeyState {
     std::optional<Rgb> background;        ///< Solid background fill color.
     std::optional<Rgb> foreground;        ///< Text and icon tint color.
     std::uint8_t fontSize{14};            ///< Overlay text size in points.
+
+    [[nodiscard]] bool operator==(KeyState const&) const = default;
 };
 
 /**
@@ -62,6 +64,8 @@ struct KeyState {
  */
 struct ActionState {
     KeyState visual; ///< Per-state visual payload; serialised as a $defs.KeyState object.
+
+    [[nodiscard]] bool operator==(ActionState const&) const = default;
 };
 
 /**
