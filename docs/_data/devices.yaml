@@ -321,6 +321,25 @@ devices:
     protocol_doc: docs/protocols/streamdeck/akp05.md
     notes: "Retail non-E AKP05; PID mirrored from upstream opendeck-akp05. Same provisional status as akp05e_pro. Supersedes the 0x5001 placeholder as the likely real retail PID."
 
+  - codename: akp032
+    family: streamdeck
+    name: "AJAZZ AKP032"
+    vid: "0x0300"
+    pid: "0x3016"
+    keys: 32
+    encoders: 0
+    maturity: functional
+    capabilities: [display, macros, firmware]
+    protocol_doc: docs/protocols/streamdeck/akp032.md
+    notes: "32 LCD keys (4x8 grid, 1024x600 canvas); 1024-byte packet framing ('CRT' prefix); no encoder; Rot0 JPEG keys."
+    feature_summary:
+      works:
+        - "Backlight brightness control via CRT LIG (0..100%)"
+        - "Display initialization via CRT DIS"
+        - "Display clear via CRT CLE (key 0xFF or individual key)"
+        - "Per-key JPEG image upload via CRT BAT (chunk size 1024 bytes)"
+        - "Key input reports (512-byte report, byte 9 = key 1..32)"
+
   # ----- Keyboards ---------------------------------------------------------
   - codename: via_generic
     family: keyboard

@@ -22,19 +22,21 @@ namespace ajazz::app {
 
 namespace {
 
-/// Map our 1-based key index (2x5: 1..5 top row, 6..10 bottom) to the mirajazz
-/// hardware index (opendeck mappings.rs: top row 10..14, bottom 5..9).
+/// Map our 1-based key index (2x5: 1..5 top row, 6..10 bottom for AKP05) to the mirajazz
+/// hardware index (opendeck mappings.rs: top row 10..14, bottom 5..9; 0-based for others).
 /// PROVISIONAL — verify against the panel in Slice 4 (the render_test photo
 /// confirmed the raw index->surface mapping renders; this row remap is the
 /// piece that pairs our grid order to it).
-[[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::uint8_t oneBased) {
-    if (oneBased >= 1 && oneBased <= 5) {
-        return static_cast<std::uint8_t>(oneBased + 9); // 1->10 .. 5->14
+[[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::uint8_t oneBased, std::string_view codename = {}) {
+    if (codename.rfind("akp05", 0) == 0 || codename == "mirabox_n4") {
+        if (oneBased >= 1 && oneBased <= 5) {
+            return static_cast<std::uint8_t>(oneBased + 9); // 1->10 .. 5->14
+        }
+        if (oneBased >= 6 && oneBased <= 10) {
+            return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
+        }
     }
-    if (oneBased >= 6 && oneBased <= 10) {
-        return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
-    }
-    return oneBased;
+    return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
 }
 
 /// Translate a sidecar (code,state) pair into a core::DeviceEvent.
@@ -102,8 +104,8 @@ namespace {
         return e;
 
     default:
-        // Physical LCD keys report their 1-based index directly (1..10).
-        if (code >= 1 && code <= 10) {
+        // Physical LCD keys report their 1-based index directly (1..32).
+        if (code >= 1 && code <= 32) {
             e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
             return e;
         }
@@ -247,7 +249,7 @@ void SidecarStreamDockDevice::setKeyImage(std::uint8_t keyIndex,
         return;
     }
     writeCommand(sidecar::buildSetImage(effectiveSerial(),
-                                        hwKeyForKeyIndex(keyIndex),
+                                        hwKeyForKeyIndex(keyIndex, m_descriptor.codename),
                                         /*touchzone=*/false,
                                         width,
                                         height,

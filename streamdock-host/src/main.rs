@@ -48,6 +48,8 @@ const KNOWN_VID_PIDS: &[(u16, u16)] = &[
     (0x5548, 0x6674),
     (0x0300, 0x1010),
     (0x0300, 0x1020),
+    // AKP032
+    (0x0300, 0x3016),
 ];
 
 fn build_queries() -> Vec<DeviceQuery> {

@@ -17,6 +17,8 @@ pub enum Family {
     Akp03,
     /// AKP153 / Mirabox HSV293S — key grid, no encoders.
     Akp153,
+    /// AKP032 — 32-key grid (4x8), no encoders.
+    Akp032,
 }
 
 /// Connection + geometry parameters for one device family member.
@@ -69,6 +71,8 @@ pub fn params_for(vid: u16, pid: u16) -> Option<DeviceParams> {
         (0x5548, 0x6674) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153 (Mirabox V1)"),
         (0x0300, 0x1010) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153E (V2)"),
         (0x0300, 0x1020) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153R"),
+        // --- AKP032 (pv3, 32 keys, no enc) ---
+        (0x0300, 0x3016) => p(Family::Akp032, 3, 32, 0, "Ajazz AKP032"),
         _ => None,
     }
 }
@@ -95,6 +99,12 @@ pub fn key_image_format(family: Family) -> ImageFormat {
             size: (85, 85),
             rotation: ImageRotation::Rot90,
             mirror: ImageMirroring::Both,
+        },
+        Family::Akp032 => ImageFormat {
+            mode: ImageMode::JPEG,
+            size: (112, 112),
+            rotation: ImageRotation::Rot0,
+            mirror: ImageMirroring::None,
         },
     }
 }
@@ -171,6 +181,23 @@ mod tests {
         assert_eq!(f.size, (85, 85));
         assert!(matches!(f.rotation, ImageRotation::Rot90));
         assert!(matches!(f.mirror, ImageMirroring::Both));
+    }
+
+    #[test]
+    fn akp032_is_pv3_no_encoders_32_keys() {
+        let p = params_for(0x0300, 0x3016).expect("AKP032 known");
+        assert_eq!(p.family, Family::Akp032);
+        assert_eq!(p.protocol_version, 3);
+        assert_eq!(p.encoder_count, 0);
+        assert_eq!(p.key_count, 32);
+    }
+
+    #[test]
+    fn akp032_key_format_is_112_rot0() {
+        let f = key_image_format(Family::Akp032);
+        assert_eq!(f.size, (112, 112));
+        assert!(matches!(f.rotation, ImageRotation::Rot0));
+        assert!(matches!(f.mirror, ImageMirroring::None));
     }
 
     #[test]

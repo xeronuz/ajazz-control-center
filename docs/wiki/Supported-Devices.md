@@ -7,7 +7,7 @@
 -->
 
 <!-- BEGIN AUTOGEN: stats -->
-**34 devices** across 1 dongle, 3 keyboard, 10 mouse, 20 streamdeck — 11 functional, 19 scaffolded, 2 probed, 2 partial.
+**35 devices** across 1 dongle, 3 keyboard, 10 mouse, 21 streamdeck — 12 functional, 19 scaffolded, 2 probed, 2 partial.
 <!-- END AUTOGEN: stats -->
 
 Support levels:
@@ -44,6 +44,7 @@ each release. See [CHANGELOG.md](https://github.com/Aiacos/ajazz-control-center/
 | streamdeck | [AJAZZ AKP05E Pro](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3013` | 10 | 4 | 🟡 scaffolded | display, encoder, touch, macros |
 | streamdeck | [AJAZZ AKP05CN Pro](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3014` | 10 | 4 | 🟡 scaffolded | display, encoder, touch, macros |
 | streamdeck | [AJAZZ AKP05 (retail)](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3006` | 10 | 4 | 🟡 scaffolded | display, encoder, touch, macros |
+| streamdeck | [AJAZZ AKP032](docs/protocols/streamdeck/akp032.md) | `0x0300:0x3016` | 32 | 0 | 🟢 functional | display, macros, firmware |
 | keyboard | [AJAZZ AK series (QMK/VIA-compatible)](docs/protocols/keyboard/via.md) | `0x3151:various` | — | — | 🟢 functional | rgb, macros, layers, firmware |
 | keyboard | [AJAZZ AK series (proprietary)](docs/protocols/keyboard/proprietary.md) | `0x3151:various` | — | — | 🟢 functional | rgb, macros, layers, firmware |
 | keyboard | [AJAZZ AK980 PRO](docs/protocols/keyboard/proprietary.md) | `0x0c45:0x8009` | — | — | 🟢 functional | rgb, macros, layers, clock, battery |
@@ -87,6 +88,7 @@ each release. See [CHANGELOG.md](https://github.com/Aiacos/ajazz-control-center/
 | [AJAZZ AKP05E Pro](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3013` | 🟡 scaffolded | Per-key display, Encoder / dial, Touch strip, Macros | Retail Pro variant (user request, issue #85). PID mirrored from upstream opendeck-akp05 mappings.rs; protocol 3, same image formats as the AKP05E. PROVISIONAL until hardware-confirmed — unlike the 0x3004 demo unit, retail Pro units report WORKING INPUT upstream (opendeck-akp05 issue #15). Driven by the mirajazz sidecar. |
 | [AJAZZ AKP05CN Pro](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3014` | 🟡 scaffolded | Per-key display, Encoder / dial, Touch strip, Macros | Chinese-market Pro variant; PID added upstream in opendeck-akp05 v0.10.2. Same provisional status as akp05e_pro. |
 | [AJAZZ AKP05 (retail)](docs/protocols/streamdeck/akp05.md) | `0x0300:0x3006` | 🟡 scaffolded | Per-key display, Encoder / dial, Touch strip, Macros | Retail non-E AKP05; PID mirrored from upstream opendeck-akp05. Same provisional status as akp05e_pro. Supersedes the 0x5001 placeholder as the likely real retail PID. |
+| [AJAZZ AKP032](docs/protocols/streamdeck/akp032.md) | `0x0300:0x3016` | 🟢 functional | Per-key display, Macros, Firmware version | ✓ Backlight brightness control via CRT LIG (0..100%); Display initialization via CRT DIS; Display clear via CRT CLE (key 0xFF or individual key); Per-key JPEG image upload via CRT BAT (chunk size 1024 bytes); Key input reports (512-byte report, byte 9 = key 1..32) · 32 LCD keys (4x8 grid, 1024x600 canvas); 1024-byte packet framing ('CRT' prefix); no encoder; Rot0 JPEG keys. |
 
 ### Keyboards
 

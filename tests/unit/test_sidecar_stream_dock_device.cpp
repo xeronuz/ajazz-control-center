@@ -78,3 +78,22 @@ TEST_CASE("SidecarStreamDockDevice output calls are safe no-ops while closed",
     REQUIRE_NOTHROW(dev.flush());
     REQUIRE_FALSE(dev.isOpen());
 }
+
+TEST_CASE("SidecarStreamDockDevice constructs for AKP032 with 32 keys and 4x8 grid",
+          "[sidecar][device][akp032]") {
+    auto const descs = ajazz::streamdeck::streamDockSidecarDescriptors();
+    auto it = std::find_if(descs.begin(), descs.end(), [](auto const& d) {
+        return d.codename == "akp032";
+    });
+    REQUIRE(it != descs.end());
+    REQUIRE(it->keyCount == 32);
+    REQUIRE(it->gridColumns == 8);
+    REQUIRE(it->keyRows == 4);
+    REQUIRE(it->encoderCount == 0);
+    REQUIRE_FALSE(it->hasTouchStrip);
+
+    SidecarStreamDockDevice dev(*it, DeviceId{it->vendorId, it->productId, "TEST-AKP032"});
+    REQUIRE(dev.displayInfo().keyCount == 32);
+    REQUIRE(dev.displayInfo().keyRows == 4);
+    REQUIRE(dev.displayInfo().keyCols == 8);
+}
