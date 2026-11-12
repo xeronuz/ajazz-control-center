@@ -286,8 +286,8 @@ std::size_t SidecarStreamDockDevice::poll() {
 core::DisplayInfo SidecarStreamDockDevice::displayInfo() const noexcept {
     core::DisplayInfo info{};
     if (m_descriptor.codename == "akp032") {
-        info.widthPx = 96;
-        info.heightPx = 96;
+        info.widthPx = 128;
+        info.heightPx = 128;
     } else {
         info.widthPx = 112;
         info.heightPx = 112;

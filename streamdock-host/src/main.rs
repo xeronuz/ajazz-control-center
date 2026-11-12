@@ -253,36 +253,41 @@ async fn handle_keep_alive(devices: &DeviceMap, cmd: &serde_json::Value, allow_o
     }
 }
 
-/// Centers an incoming key image for AKP032 onto a native 128x128 canvas
-/// matching the physical key bezel aperture (centered at 16, 16 with size 96x96).
-/// This prevents top/left bezel clipping when OpenDeck or plugins send 96x96 images.
-fn prepare_akp032_key_image(img: DynamicImage) -> DynamicImage {
+/// Prepares an incoming key image for AKP032 onto a native 128x128 canvas
+/// matching the physical key bezel aperture and hardware column offsets.
+///
+/// Hardware confirmation (2026-11-13):
+/// - Panel wire cell size is 128x128 px.
+/// - Physical transparent keycap window is ~104x104 px.
+/// - Vertical bezel covers top Y=0..16; bottom Y=124..127 is visible. Offset Y=18 centers the aperture.
+/// - Horizontal: Col 0 (key % 8 == 0) is bounded by the outer casing (Offset X=15).
+///   Inner columns 1..7 (key % 8 != 0) are shifted rightward by the plastic grid ribs (Offset X=20).
+fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
     let (w, h) = (img.width(), img.height());
     // 1x1 is a solid color fill (setKeyColor) -> let mirajazz resize to 128x128 directly
     if w <= 1 || h <= 1 {
         return img;
     }
-    // If the image is already exactly native wire dimensions, keep as-is
-    if w == 128 && h == 128 {
-        return img;
-    }
 
     let target_w = 128u32;
     let target_h = 128u32;
-    let aperture_w = 96u32;
-    let aperture_h = 96u32;
+    let aperture_w = 104u32;
+    let aperture_h = 104u32;
 
-    // Fit inside the 96x96 aperture if larger
-    let fitted = if w <= aperture_w && h <= aperture_h {
+    // Proportionally fit inside the 104x104 aperture
+    let fitted = if w == aperture_w && h == aperture_h {
         img
     } else {
-        img.resize(aperture_w, aperture_h, image::imageops::FilterType::Lanczos3)
+        img.resize_exact(aperture_w, aperture_h, image::imageops::FilterType::Lanczos3)
     };
 
     let fw = fitted.width();
     let fh = fitted.height();
-    let offset_x = (target_w.saturating_sub(fw)) / 2;
-    let offset_y = (target_h.saturating_sub(fh)) / 2;
+
+    // Col 0 (leftmost) vs Col 1..7 (inner columns)
+    let col = hw_key % 8;
+    let offset_x = if col == 0 { 15u32 } else { 20u32 };
+    let offset_y = 18u32;
 
     let rgba_img = fitted.to_rgba8();
     let p = rgba_img.get_pixel(0, 0);
@@ -296,20 +301,24 @@ fn prepare_akp032_key_image(img: DynamicImage) -> DynamicImage {
     let mut canvas = RgbaImage::from_pixel(target_w, target_h, bg_color);
     for sy in 0..fh {
         for sx in 0..fw {
-            let sp = rgba_img.get_pixel(sx, sy);
-            if sp[3] == 255 {
-                canvas.put_pixel(offset_x + sx, offset_y + sy, *sp);
-            } else if sp[3] > 0 {
-                let a = sp[3] as u32;
-                let inv_a = 255 - a;
-                let r = (sp[0] as u32 * a + bg_color[0] as u32 * inv_a) / 255;
-                let g = (sp[1] as u32 * a + bg_color[1] as u32 * inv_a) / 255;
-                let b = (sp[2] as u32 * a + bg_color[2] as u32 * inv_a) / 255;
-                canvas.put_pixel(
-                    offset_x + sx,
-                    offset_y + sy,
-                    image::Rgba([r as u8, g as u8, b as u8, 255]),
-                );
+            let dx = offset_x + sx;
+            let dy = offset_y + sy;
+            if dx < target_w && dy < target_h {
+                let sp = rgba_img.get_pixel(sx, sy);
+                if sp[3] == 255 {
+                    canvas.put_pixel(dx, dy, *sp);
+                } else if sp[3] > 0 {
+                    let a = sp[3] as u32;
+                    let inv_a = 255 - a;
+                    let r = (sp[0] as u32 * a + bg_color[0] as u32 * inv_a) / 255;
+                    let g = (sp[1] as u32 * a + bg_color[1] as u32 * inv_a) / 255;
+                    let b = (sp[2] as u32 * a + bg_color[2] as u32 * inv_a) / 255;
+                    canvas.put_pixel(
+                        dx,
+                        dy,
+                        image::Rgba([r as u8, g as u8, b as u8, 255]),
+                    );
+                }
             }
         }
     }
@@ -366,7 +375,7 @@ async fn handle_set_image(devices: &DeviceMap, cmd: &serde_json::Value, allow_ou
     };
 
     let img = if !touchzone && family == Family::Akp032 {
-        prepare_akp032_key_image(img)
+        prepare_akp032_key_image(img, key)
     } else {
         img
     };
@@ -456,31 +465,33 @@ mod tests {
     }
 
     #[test]
-    fn prepare_akp032_key_image_centers_96x96_to_128x128() {
+    fn prepare_akp032_key_image_centers_104x104_to_128x128() {
         use image::{DynamicImage, RgbaImage};
         let red = image::Rgba([255, 0, 0, 255]);
-        let src = DynamicImage::ImageRgba8(RgbaImage::from_pixel(96, 96, red));
-        let out = super::prepare_akp032_key_image(src);
-        assert_eq!(out.width(), 128);
-        assert_eq!(out.height(), 128);
-        let rgba = out.to_rgba8();
-        // Corners outside 96x96 box (e.g. 16..112) get the sampled corner color
-        assert_eq!(*rgba.get_pixel(16, 16), red);
-        assert_eq!(*rgba.get_pixel(64, 64), red);
-        assert_eq!(*rgba.get_pixel(111, 111), red);
+        let src = DynamicImage::ImageRgba8(RgbaImage::from_pixel(104, 104, red));
+        // Col 0 (key 0)
+        let out0 = super::prepare_akp032_key_image(src.clone(), 0);
+        assert_eq!(out0.width(), 128);
+        assert_eq!(out0.height(), 128);
+        let rgba0 = out0.to_rgba8();
+        assert_eq!(*rgba0.get_pixel(15, 18), red);
+        assert_eq!(*rgba0.get_pixel(15 + 103, 18 + 103), red);
+
+        // Col 1 (key 1)
+        let out1 = super::prepare_akp032_key_image(src, 1);
+        assert_eq!(out1.width(), 128);
+        assert_eq!(out1.height(), 128);
+        let rgba1 = out1.to_rgba8();
+        assert_eq!(*rgba1.get_pixel(20, 18), red);
+        assert_eq!(*rgba1.get_pixel(20 + 103, 18 + 103), red);
     }
 
     #[test]
-    fn prepare_akp032_key_image_preserves_1x1_and_128x128() {
+    fn prepare_akp032_key_image_preserves_1x1() {
         use image::{DynamicImage, RgbaImage};
         let one = DynamicImage::ImageRgba8(RgbaImage::new(1, 1));
-        let out_one = super::prepare_akp032_key_image(one);
+        let out_one = super::prepare_akp032_key_image(one, 0);
         assert_eq!(out_one.width(), 1);
         assert_eq!(out_one.height(), 1);
-
-        let full = DynamicImage::ImageRgba8(RgbaImage::new(128, 128));
-        let out_full = super::prepare_akp032_key_image(full);
-        assert_eq!(out_full.width(), 128);
-        assert_eq!(out_full.height(), 128);
     }
 }

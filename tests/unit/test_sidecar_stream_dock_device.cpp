@@ -96,6 +96,6 @@ TEST_CASE("SidecarStreamDockDevice constructs for AKP032 with 32 keys and 4x8 gr
     REQUIRE(dev.descriptor().keyCount == 32);
     REQUIRE(dev.displayInfo().keyRows == 4);
     REQUIRE(dev.displayInfo().keyCols == 8);
-    REQUIRE(dev.displayInfo().widthPx == 96);
-    REQUIRE(dev.displayInfo().heightPx == 96);
+    REQUIRE(dev.displayInfo().widthPx == 128);
+    REQUIRE(dev.displayInfo().heightPx == 128);
 }

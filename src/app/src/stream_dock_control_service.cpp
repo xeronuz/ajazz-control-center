@@ -494,7 +494,18 @@ void StreamDockControlService::repaintPage(QString const& pageId) {
         // Render KeyState: imagePath takes priority; fall back to background fill.
         QImage img;
         if (binding.state.imagePath && !binding.state.imagePath->empty()) {
-            img = QImage(normaliseImagePath(*binding.state.imagePath));
+            auto const& pathStr = *binding.state.imagePath;
+            if (pathStr.rfind("data:image/", 0) == 0) {
+                auto const comma = pathStr.find(',');
+                if (comma != std::string::npos) {
+                    QByteArray const b64 = QByteArray::fromBase64(
+                        QByteArray::fromRawData(pathStr.data() + comma + 1,
+                                                static_cast<qsizetype>(pathStr.size() - comma - 1)));
+                    img.loadFromData(b64);
+                }
+            } else {
+                img = QImage(normaliseImagePath(pathStr));
+            }
             if (img.isNull()) {
                 // Image load failed -- fall through to background fill or skip.
                 AJAZZ_LOG_WARN("stream-dock-control",
