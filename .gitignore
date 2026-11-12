@@ -85,3 +85,6 @@ captures/raw/
 src/app/webui/opendeck/node_modules/
 src/app/webui/opendeck/build/
 src/app/webui/opendeck/.svelte-kit/
+
+uv.lock
+

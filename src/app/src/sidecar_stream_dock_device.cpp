@@ -37,6 +37,19 @@ namespace {
             return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
         }
     }
+    if (codename == "akp032") {
+        // AKP032 (4 rows x 8 cols) hardware panel addresses rows inverted vertically:
+        // hardware row 0 is bottom row, hardware row 3 is top row.
+        // Remap UI rows 0..3 (top-to-bottom) to hardware rows 3..0 (bottom-up),
+        // leaving column order 0..7 (left-to-right) intact.
+        if (oneBased >= 1 && oneBased <= 32) {
+            std::uint8_t const zero = static_cast<std::uint8_t>(oneBased - 1);
+            std::uint8_t const row = zero / 8;
+            std::uint8_t const col = zero % 8;
+            std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
+            return static_cast<std::uint8_t>(invertedRow * 8 + col);
+        }
+    }
     return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
 }
 
@@ -45,7 +58,8 @@ namespace {
 /// Codes follow opendeck-akp05's N4-derived mapping (inputs.rs) — PROVISIONAL
 /// for the AKP05 (the demo unit emits no input; calibrate on a retail unit).
 [[nodiscard]] std::optional<core::DeviceEvent> mapSidecarInput(std::uint8_t code,
-                                                               std::uint8_t state) {
+                                                               std::uint8_t state,
+                                                               std::string_view codename = {}) {
     using Kind = core::DeviceEvent::Kind;
     core::DeviceEvent e{};
 
@@ -107,7 +121,16 @@ namespace {
     default:
         // Physical LCD keys report their 1-based index directly (1..32).
         if (code >= 1 && code <= 32) {
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
+            std::uint8_t mappedCode = code;
+            if (codename == "akp032") {
+                // Invert physical bottom-up rows back to UI top-to-bottom row order
+                std::uint8_t const zero = static_cast<std::uint8_t>(code - 1);
+                std::uint8_t const row = zero / 8;
+                std::uint8_t const col = zero % 8;
+                std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
+                mappedCode = static_cast<std::uint8_t>(invertedRow * 8 + col + 1);
+            }
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, mappedCode, state};
             return e;
         }
         return std::nullopt;
@@ -412,7 +435,7 @@ void SidecarStreamDockDevice::handleLine(QByteArray const& line) {
         m_ready = true;
         break;
     case Type::Input: {
-        auto const devEv = mapSidecarInput(ev->code, ev->state);
+        auto const devEv = mapSidecarInput(ev->code, ev->state, m_descriptor.codename);
         // Log EVERY input frame the mirajazz sidecar delivers — mapped or not.
         // The AKP05 code map is PROVISIONAL (N4-derived; the 0x3004 demo unit
         // emits nothing to calibrate against), so an unmapped code was dropped
