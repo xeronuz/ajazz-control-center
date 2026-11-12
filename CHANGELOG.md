@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **AKP032 image orientation & centering** (2026-11-12): Switched key image format from `Rot0` to `Rot180` to match inverted physical LCD panel mounting. Adjusted key tile dimensions from 112×112 to 128×128 ($1024 / 8$), resolving the 16 px horizontal offset that pressed icons against cell edges.
 - **AKP032 vertical row inversion** (2026-11-12): Corrected hardware-confirmed vertical row flip where the physical LCD panel and tactile matrix address rows bottom-up (0..3) while the UI addresses them top-down (0..3). Implemented `hwKeyForKeyIndex` display remapping and `mapSidecarInput` key event translation ($Row_{hw} = 3 - Row_{ui}$).
 - **AKP05 Pro/retail SKUs registered** (2026-07-03, issue #85): `0x0300:0x3013` (AKP05E Pro),
   `0x3014` (AKP05CN Pro) and `0x3006` (AKP05 retail) are now recognised by the sidecar and the

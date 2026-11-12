@@ -257,8 +257,13 @@ std::size_t SidecarStreamDockDevice::poll() {
 
 core::DisplayInfo SidecarStreamDockDevice::displayInfo() const noexcept {
     core::DisplayInfo info{};
-    info.widthPx = 112;
-    info.heightPx = 112;
+    if (m_descriptor.codename == "akp032") {
+        info.widthPx = 128;
+        info.heightPx = 128;
+    } else {
+        info.widthPx = 112;
+        info.heightPx = 112;
+    }
     info.keyRows = m_descriptor.keyRows;
     info.keyCols = static_cast<std::uint8_t>(m_descriptor.gridColumns);
     info.jpegEncoded = true;
