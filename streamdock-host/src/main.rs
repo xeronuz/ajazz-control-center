@@ -253,6 +253,70 @@ async fn handle_keep_alive(devices: &DeviceMap, cmd: &serde_json::Value, allow_o
     }
 }
 
+/// Centers an incoming key image for AKP032 onto a native 128x128 canvas
+/// matching the physical key bezel aperture (centered at 16, 16 with size 96x96).
+/// This prevents top/left bezel clipping when OpenDeck or plugins send 96x96 images.
+fn prepare_akp032_key_image(img: DynamicImage) -> DynamicImage {
+    let (w, h) = (img.width(), img.height());
+    // 1x1 is a solid color fill (setKeyColor) -> let mirajazz resize to 128x128 directly
+    if w <= 1 || h <= 1 {
+        return img;
+    }
+    // If the image is already exactly native wire dimensions, keep as-is
+    if w == 128 && h == 128 {
+        return img;
+    }
+
+    let target_w = 128u32;
+    let target_h = 128u32;
+    let aperture_w = 96u32;
+    let aperture_h = 96u32;
+
+    // Fit inside the 96x96 aperture if larger
+    let fitted = if w <= aperture_w && h <= aperture_h {
+        img
+    } else {
+        img.resize(aperture_w, aperture_h, image::imageops::FilterType::Lanczos3)
+    };
+
+    let fw = fitted.width();
+    let fh = fitted.height();
+    let offset_x = (target_w.saturating_sub(fw)) / 2;
+    let offset_y = (target_h.saturating_sub(fh)) / 2;
+
+    let rgba_img = fitted.to_rgba8();
+    let p = rgba_img.get_pixel(0, 0);
+    // If top-left pixel is opaque, use it as bezel border fill color; otherwise solid black
+    let bg_color = if p[3] < 128 {
+        image::Rgba([0, 0, 0, 255])
+    } else {
+        *p
+    };
+
+    let mut canvas = RgbaImage::from_pixel(target_w, target_h, bg_color);
+    for sy in 0..fh {
+        for sx in 0..fw {
+            let sp = rgba_img.get_pixel(sx, sy);
+            if sp[3] == 255 {
+                canvas.put_pixel(offset_x + sx, offset_y + sy, *sp);
+            } else if sp[3] > 0 {
+                let a = sp[3] as u32;
+                let inv_a = 255 - a;
+                let r = (sp[0] as u32 * a + bg_color[0] as u32 * inv_a) / 255;
+                let g = (sp[1] as u32 * a + bg_color[1] as u32 * inv_a) / 255;
+                let b = (sp[2] as u32 * a + bg_color[2] as u32 * inv_a) / 255;
+                canvas.put_pixel(
+                    offset_x + sx,
+                    offset_y + sy,
+                    image::Rgba([r as u8, g as u8, b as u8, 255]),
+                );
+            }
+        }
+    }
+
+    DynamicImage::ImageRgba8(canvas)
+}
+
 /// `{"cmd":"set_image","serial":..,"key":N,"touchzone":bool,"width":W,"height":H,"rgba_b64":".."}`
 async fn handle_set_image(devices: &DeviceMap, cmd: &serde_json::Value, allow_output: bool) {
     if !allow_output {
@@ -283,7 +347,7 @@ async fn handle_set_image(devices: &DeviceMap, cmd: &serde_json::Value, allow_ou
         }
     };
 
-    let (device, fmt) = {
+    let (device, fmt, family) = {
         let guard = devices.lock().await;
         match guard.get(serial) {
             Some(e) => {
@@ -292,13 +356,19 @@ async fn handle_set_image(devices: &DeviceMap, cmd: &serde_json::Value, allow_ou
                 } else {
                     key_image_format(e.family)
                 };
-                (e.device.clone(), fmt)
+                (e.device.clone(), fmt, e.family)
             }
             None => {
                 emit(serde_json::json!({"event":"error","msg":format!("no device {serial}")}));
                 return;
             }
         }
+    };
+
+    let img = if !touchzone && family == Family::Akp032 {
+        prepare_akp032_key_image(img)
+    } else {
+        img
     };
 
     let r = async {
@@ -342,7 +412,9 @@ async fn handle_render_test(devices: &DeviceMap, cmd: &serde_json::Value, allow_
             let (fmt, dim) = if family == Family::Akp05 && key < 4 {
                 (zone_image_format(), 128u32)
             } else {
-                (key_image_format(family), 112u32)
+                let fmt = key_image_format(family);
+                let (w, _) = fmt.size;
+                (fmt, w as u32)
             };
             device.set_button_image(key, fmt, make_solid(dim, dim, r, g, b)).await?;
         }
@@ -381,5 +453,34 @@ mod tests {
         // Too-short / empty buffers are not ACK.
         assert!(!is_ack_frame(&[0x41, 0x43]));
         assert!(!is_ack_frame(&[]));
+    }
+
+    #[test]
+    fn prepare_akp032_key_image_centers_96x96_to_128x128() {
+        use image::{DynamicImage, RgbaImage};
+        let red = image::Rgba([255, 0, 0, 255]);
+        let src = DynamicImage::ImageRgba8(RgbaImage::from_pixel(96, 96, red));
+        let out = super::prepare_akp032_key_image(src);
+        assert_eq!(out.width(), 128);
+        assert_eq!(out.height(), 128);
+        let rgba = out.to_rgba8();
+        // Corners outside 96x96 box (e.g. 16..112) get the sampled corner color
+        assert_eq!(*rgba.get_pixel(16, 16), red);
+        assert_eq!(*rgba.get_pixel(64, 64), red);
+        assert_eq!(*rgba.get_pixel(111, 111), red);
+    }
+
+    #[test]
+    fn prepare_akp032_key_image_preserves_1x1_and_128x128() {
+        use image::{DynamicImage, RgbaImage};
+        let one = DynamicImage::ImageRgba8(RgbaImage::new(1, 1));
+        let out_one = super::prepare_akp032_key_image(one);
+        assert_eq!(out_one.width(), 1);
+        assert_eq!(out_one.height(), 1);
+
+        let full = DynamicImage::ImageRgba8(RgbaImage::new(128, 128));
+        let out_full = super::prepare_akp032_key_image(full);
+        assert_eq!(out_full.width(), 128);
+        assert_eq!(out_full.height(), 128);
     }
 }
