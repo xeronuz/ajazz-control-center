@@ -292,6 +292,15 @@ void StreamDockInputService::dispatch(core::DeviceEvent const& ev) {
 
     // ---- Encoder events (INPUT-04) ---------------------------------------
     case core::DeviceEvent::Kind::EncoderTurned:
+        if (m_activeDeviceId == QStringLiteral("akp032")) {
+            if (ev.index == 0) {
+                // Left rocker wheel: -1 = Prev Page, +1 = Next Page
+                emit pageNavRequested(ev.value);
+            } else if (ev.index == 1) {
+                // Right rocker wheel: -1 = Prev Profile, +1 = Next Profile
+                emit profileNavRequested(ev.value);
+            }
+        }
         onEncoderTurned(ev.index, ev.value);
         break;
 

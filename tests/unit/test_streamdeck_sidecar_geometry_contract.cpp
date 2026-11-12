@@ -75,8 +75,8 @@ constexpr std::array<SidecarContract, 20> kSidecarContract = {{
     {0x5548, 0x6674, 15, 0, 0}, // Ajazz AKP153 (Mirabox V1)
     {0x0300, 0x1010, 15, 0, 0}, // Ajazz AKP153E (V2)
     {0x0300, 0x1020, 15, 0, 0}, // Ajazz AKP153R
-    // --- AKP032 (pv3): 32 keys, no encoders, no strip.
-    {0x0300, 0x3016, 32, 0, 0}, // Ajazz AKP032
+    // --- AKP032 (pv3): 32 keys, 2 side rocker encoders, no strip.
+    {0x0300, 0x3016, 32, 2, 0}, // Ajazz AKP032
 }};
 
 } // namespace

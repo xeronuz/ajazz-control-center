@@ -169,6 +169,12 @@ async fn main() {
 /// 0x4b) and share the input channel; they must not be decoded as input.
 /// See docs/protocols/streamdeck/akp05_input_corrections.md §2.1.
 fn is_ack_frame(buf: &[u8]) -> bool {
+    // If byte 9 (key/encoder code) is non-zero, this is a genuine input report,
+    // not a command acknowledgement (observed on AKP032 firmware which prefixes
+    // all input frames with "ACK..OK").
+    if buf.get(9).copied().unwrap_or(0) != 0 {
+        return false;
+    }
     buf.len() >= 3 && buf[0] == 0x41 && buf[1] == 0x43 && buf[2] == 0x4b
 }
 
@@ -363,6 +369,15 @@ mod tests {
         input[9] = 0x05; // key index 5
         input[10] = 0x01; // pressed
         assert!(!is_ack_frame(&input));
+
+        // An AKP032 input report begins with "ACK" but has a non-zero code at byte 9.
+        let mut akp032_input = [0u8; 16];
+        akp032_input[0] = 0x41;
+        akp032_input[1] = 0x43;
+        akp032_input[2] = 0x4b;
+        akp032_input[9] = 0x21; // Left wheel UP
+        akp032_input[10] = 0x01;
+        assert!(!is_ack_frame(&akp032_input));
         // Too-short / empty buffers are not ACK.
         assert!(!is_ack_frame(&[0x41, 0x43]));
         assert!(!is_ack_frame(&[]));

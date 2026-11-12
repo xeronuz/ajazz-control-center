@@ -63,6 +63,34 @@ namespace {
     using Kind = core::DeviceEvent::Kind;
     core::DeviceEvent e{};
 
+    if (codename == "akp032") {
+        // AKP032 side rocker switches:
+        // Left wheel:  0x21 = UP (Prev Page),    0x23 = DOWN (Next Page)
+        // Right wheel: 0x24 = UP (Prev Profile), 0x26 = DOWN (Next Profile)
+        if (code == 0x21 || code == 0x23 || code == 0x24 || code == 0x26) {
+            if (state == 1) { // Deflection press
+                if (code == 0x21) {
+                    e = {Kind::EncoderTurned, 0, -1};
+                    return e;
+                }
+                if (code == 0x23) {
+                    e = {Kind::EncoderTurned, 0, 1};
+                    return e;
+                }
+                if (code == 0x24) {
+                    e = {Kind::EncoderTurned, 1, -1};
+                    return e;
+                }
+                if (code == 0x26) {
+                    e = {Kind::EncoderTurned, 1, 1};
+                    return e;
+                }
+            }
+            // Release back to neutral: ignore
+            return std::nullopt;
+        }
+    }
+
     switch (code) {
     // Encoder twist: low byte = -1, high byte = +1, per encoder.
     case 0xA0:

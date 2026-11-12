@@ -71,8 +71,8 @@ pub fn params_for(vid: u16, pid: u16) -> Option<DeviceParams> {
         (0x5548, 0x6674) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153 (Mirabox V1)"),
         (0x0300, 0x1010) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153E (V2)"),
         (0x0300, 0x1020) => p(Family::Akp153, 1, 15, 0, "Ajazz AKP153R"),
-        // --- AKP032 (pv3, 32 keys, no enc) ---
-        (0x0300, 0x3016) => p(Family::Akp032, 3, 32, 0, "Ajazz AKP032"),
+        // --- AKP032 (pv3, 32 keys, 2 side rocker encoders) ---
+        (0x0300, 0x3016) => p(Family::Akp032, 3, 32, 2, "Ajazz AKP032"),
         _ => None,
     }
 }
@@ -184,11 +184,11 @@ mod tests {
     }
 
     #[test]
-    fn akp032_is_pv3_no_encoders_32_keys() {
+    fn akp032_is_pv3_2_encoders_32_keys() {
         let p = params_for(0x0300, 0x3016).expect("AKP032 known");
         assert_eq!(p.family, Family::Akp032);
         assert_eq!(p.protocol_version, 3);
-        assert_eq!(p.encoder_count, 0);
+        assert_eq!(p.encoder_count, 2);
         assert_eq!(p.key_count, 32);
     }
 

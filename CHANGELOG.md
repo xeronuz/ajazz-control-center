@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **AKP032 input reporting & false-positive ACK drop** (2026-11-12): Resolved an issue where all key presses and wheel toggles on AKP032 were discarded by `streamdock-host`. AKP032 firmware prefixes all input packets with `ACK\0\0OK\0\0`, which triggered the command-acknowledgement filter. Added `buf[9] != 0` check so input reports are correctly forwarded.
+- **AKP032 side rocker encoders for Page & Profile switching** (2026-11-12): Enabled 2 side rocker encoders (`encoderCount: 2`). Mapped hardware codes: Left wheel UP `0x21` / DOWN `0x23` to Previous/Next Page (`pageNavRequested`), Right wheel UP `0x24` / DOWN `0x26` to Previous/Next Profile (`profileNavRequested`).
 - **AKP032 image orientation & aperture sizing** (2026-11-12): Switched key image format from `Rot0` to `Rot180` to match inverted physical LCD panel mounting. Corrected key tile resolution to native 96×96 px physical aperture (resolving bezel clipping where 128×128 overflowed the key aperture boundaries and cut off the top and left white borders).
 - **AKP032 vertical row inversion** (2026-11-12): Corrected hardware-confirmed vertical row flip where the physical LCD panel and tactile matrix address rows bottom-up (0..3) while the UI addresses them top-down (0..3). Implemented `hwKeyForKeyIndex` display remapping and `mapSidecarInput` key event translation ($Row_{hw} = 3 - Row_{ui}$).
 - **AKP05 Pro/retail SKUs registered** (2026-07-03, issue #85): `0x0300:0x3013` (AKP05E Pro),

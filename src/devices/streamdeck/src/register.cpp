@@ -98,7 +98,7 @@ std::vector<core::DeviceDescriptor> streamDockSidecarDescriptors() {
                                 .codename = code,
                                 .keyCount = 32,
                                 .gridColumns = 8,
-                                .encoderCount = 0,
+                                .encoderCount = 2,
                                 .keyRows = 4};
     };
 
@@ -128,7 +128,7 @@ std::vector<core::DeviceDescriptor> streamDockSidecarDescriptors() {
     out.push_back(akp05(0x0300, 0x3013, "AJAZZ AKP05E Pro", "akp05e_pro"));
     out.push_back(akp05(0x0300, 0x3014, "AJAZZ AKP05CN Pro", "akp05cn_pro"));
     out.push_back(akp05(0x0300, 0x3006, "AJAZZ AKP05 (retail)", "akp05_retail"));
-    // AKP032 (32 keys, 4x8 grid, no encoders).
+    // AKP032 (32 keys, 4x8 grid, 2 side rocker encoders).
     out.push_back(akp032(0x0300, 0x3016, "AJAZZ AKP032", "akp032"));
 
     return out;
