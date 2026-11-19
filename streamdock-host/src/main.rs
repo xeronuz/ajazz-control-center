@@ -281,15 +281,19 @@ fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
         (44u32, 41u32, 83u32, 87u32)
     };
 
-    // Fit inside the hardware aperture
-    let fitted = if w == aperture_w && h == aperture_h {
+    // Fit inside the hardware aperture while strictly preserving aspect ratio
+    let fitted = if w <= aperture_w && h <= aperture_h && (w == aperture_w || h == aperture_h) {
         img
     } else {
-        img.resize_exact(aperture_w, aperture_h, image::imageops::FilterType::Lanczos3)
+        img.resize(aperture_w, aperture_h, image::imageops::FilterType::Lanczos3)
     };
 
     let fw = fitted.width();
     let fh = fitted.height();
+
+    // Center proportionally within the aperture
+    let start_x = offset_x + (aperture_w.saturating_sub(fw)) / 2;
+    let start_y = offset_y + (aperture_h.saturating_sub(fh)) / 2;
 
     let rgba_img = fitted.to_rgba8();
     let p = rgba_img.get_pixel(0, 0);
@@ -303,8 +307,8 @@ fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
     let mut canvas = RgbaImage::from_pixel(target_w, target_h, bg_color);
     for sy in 0..fh {
         for sx in 0..fw {
-            let dx = offset_x + sx;
-            let dy = offset_y + sy;
+            let dx = start_x + sx;
+            let dy = start_y + sy;
             if dx < target_w && dy < target_h {
                 let sp = rgba_img.get_pixel(sx, sy);
                 if sp[3] == 255 {
@@ -470,23 +474,23 @@ mod tests {
     fn prepare_akp032_key_image_centers_apertures_to_128x128() {
         use image::{DynamicImage, RgbaImage};
         let red = image::Rgba([255, 0, 0, 255]);
-        // Col 0 (key 0): 107x87 at (21, 40)
-        let src0 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(107, 87, red));
+        // Col 0 (key 0): 107x87 aperture, 100x100 square icon fits to 87x87, centered at dx = 21 + 10 = 31, dy = 40
+        let src0 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(100, 100, red));
         let out0 = super::prepare_akp032_key_image(src0, 0);
         assert_eq!(out0.width(), 128);
         assert_eq!(out0.height(), 128);
         let rgba0 = out0.to_rgba8();
-        assert_eq!(*rgba0.get_pixel(21, 40), red);
-        assert_eq!(*rgba0.get_pixel(21 + 107 - 1, 40 + 87 - 1), red);
+        assert_eq!(*rgba0.get_pixel(31, 40), red);
+        assert_eq!(*rgba0.get_pixel(31 + 87 - 1, 40 + 87 - 1), red);
 
-        // Col 1 (key 1): 83x87 at (44, 41)
-        let src1 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(83, 87, red));
+        // Col 1 (key 1): 83x87 aperture, 100x100 square icon fits to 83x83, centered at dx = 44, dy = 41 + 2 = 43
+        let src1 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(100, 100, red));
         let out1 = super::prepare_akp032_key_image(src1, 1);
         assert_eq!(out1.width(), 128);
         assert_eq!(out1.height(), 128);
         let rgba1 = out1.to_rgba8();
-        assert_eq!(*rgba1.get_pixel(44, 41), red);
-        assert_eq!(*rgba1.get_pixel(44 + 83 - 1, 41 + 87 - 1), red);
+        assert_eq!(*rgba1.get_pixel(44, 43), red);
+        assert_eq!(*rgba1.get_pixel(44 + 83 - 1, 43 + 83 - 1), red);
     }
 
     #[test]
