@@ -259,11 +259,9 @@ async fn handle_keep_alive(devices: &DeviceMap, cmd: &serde_json::Value, allow_o
 /// Hardware confirmation (2026-11-13):
 /// AKP032 (PID 0x3016) hardware calibration:
 /// - Panel wire cell size is 128x128 px.
-/// - Physical transparent keycap window calibration:
-///   - Column 0 (leftmost): aperture 107x87 px at offset (21, 40). Bounded by outer casing bezel.
-///   - Inner columns 1..7: aperture 83x87 px at offset (44, 41). Centered within interior keycap ribs.
-/// - Hardware applies Rot180 before transmitting to device.
-fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
+/// - Physical transparent keycap window: uniform 86x86 px centered at offset (42, 41) for all 32 keys.
+/// - Identical symmetrical geometry across all 4 rows x 8 columns.
+fn prepare_akp032_key_image(img: DynamicImage, _hw_key: u8) -> DynamicImage {
     let (w, h) = (img.width(), img.height());
     // 1x1 is a solid color fill (setKeyColor) -> let mirajazz resize to 128x128 directly
     if w <= 1 || h <= 1 {
@@ -272,14 +270,10 @@ fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
 
     let target_w = 128u32;
     let target_h = 128u32;
-
-    // Col 0 (leftmost) vs Col 1..7 (inner columns)
-    let col = hw_key % 8;
-    let (offset_x, offset_y, aperture_w, aperture_h) = if col == 0 {
-        (21u32, 40u32, 107u32, 87u32)
-    } else {
-        (44u32, 41u32, 83u32, 87u32)
-    };
+    let offset_x = 42u32;
+    let offset_y = 41u32;
+    let aperture_w = 86u32;
+    let aperture_h = 86u32;
 
     // Fit inside the hardware aperture while strictly preserving aspect ratio
     let fitted = if w <= aperture_w && h <= aperture_h && (w == aperture_w || h == aperture_h) {
@@ -474,23 +468,14 @@ mod tests {
     fn prepare_akp032_key_image_centers_apertures_to_128x128() {
         use image::{DynamicImage, RgbaImage};
         let red = image::Rgba([255, 0, 0, 255]);
-        // Col 0 (key 0): 107x87 aperture, 100x100 square icon fits to 87x87, centered at dx = 21 + 10 = 31, dy = 40
-        let src0 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(100, 100, red));
-        let out0 = super::prepare_akp032_key_image(src0, 0);
-        assert_eq!(out0.width(), 128);
-        assert_eq!(out0.height(), 128);
-        let rgba0 = out0.to_rgba8();
-        assert_eq!(*rgba0.get_pixel(31, 40), red);
-        assert_eq!(*rgba0.get_pixel(31 + 87 - 1, 40 + 87 - 1), red);
-
-        // Col 1 (key 1): 83x87 aperture, 100x100 square icon fits to 83x83, centered at dx = 44, dy = 41 + 2 = 43
-        let src1 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(100, 100, red));
-        let out1 = super::prepare_akp032_key_image(src1, 1);
-        assert_eq!(out1.width(), 128);
-        assert_eq!(out1.height(), 128);
-        let rgba1 = out1.to_rgba8();
-        assert_eq!(*rgba1.get_pixel(44, 43), red);
-        assert_eq!(*rgba1.get_pixel(44 + 83 - 1, 43 + 83 - 1), red);
+        // All keys: 86x86 aperture, 100x100 square icon fits to 86x86, centered at dx = 42, dy = 41
+        let src = DynamicImage::ImageRgba8(RgbaImage::from_pixel(100, 100, red));
+        let out = super::prepare_akp032_key_image(src, 0);
+        assert_eq!(out.width(), 128);
+        assert_eq!(out.height(), 128);
+        let rgba = out.to_rgba8();
+        assert_eq!(*rgba.get_pixel(42, 41), red);
+        assert_eq!(*rgba.get_pixel(42 + 86 - 1, 41 + 86 - 1), red);
     }
 
     #[test]

@@ -37,19 +37,7 @@ namespace {
             return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
         }
     }
-    if (codename == "akp032") {
-        // AKP032 (4 rows x 8 cols) hardware panel addresses rows inverted vertically:
-        // hardware row 0 is bottom row, hardware row 3 is top row.
-        // Remap UI rows 0..3 (top-to-bottom) to hardware rows 3..0 (bottom-up),
-        // leaving column order 0..7 (left-to-right) intact.
-        if (oneBased >= 1 && oneBased <= 32) {
-            std::uint8_t const zero = static_cast<std::uint8_t>(oneBased - 1);
-            std::uint8_t const row = zero / 8;
-            std::uint8_t const col = zero % 8;
-            std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
-            return static_cast<std::uint8_t>(invertedRow * 8 + col);
-        }
-    }
+    // AKP032 (32 keys, 4 rows x 8 cols) uses natural top-to-bottom, left-to-right indexing (1..32 -> 0..31).
     return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
 }
 
