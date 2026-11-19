@@ -27,7 +27,10 @@ namespace {
 /// PROVISIONAL — verify against the panel in Slice 4 (the render_test photo
 /// confirmed the raw index->surface mapping renders; this row remap is the
 /// piece that pairs our grid order to it).
-[[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::uint8_t oneBased) {
+[[nodiscard]] std::uint8_t hwKeyForKeyIndex(core::DeviceDescriptor const& desc, std::uint8_t oneBased) {
+    if (desc.codename == "akp032") {
+        return static_cast<std::uint8_t>(oneBased - 1);
+    }
     if (oneBased >= 1 && oneBased <= 5) {
         return static_cast<std::uint8_t>(oneBased + 9); // 1->10 .. 5->14
     }
@@ -102,8 +105,8 @@ namespace {
         return e;
 
     default:
-        // Physical LCD keys report their 1-based index directly (1..10).
-        if (code >= 1 && code <= 10) {
+        // Physical LCD keys report their 1-based index directly (1..32).
+        if (code >= 1 && code <= 32) {
             e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
             return e;
         }
@@ -231,8 +234,13 @@ std::size_t SidecarStreamDockDevice::poll() {
 
 core::DisplayInfo SidecarStreamDockDevice::displayInfo() const noexcept {
     core::DisplayInfo info{};
-    info.widthPx = 112;
-    info.heightPx = 112;
+    if (m_descriptor.codename == "akp032") {
+        info.widthPx = 128;
+        info.heightPx = 128;
+    } else {
+        info.widthPx = 112;
+        info.heightPx = 112;
+    }
     info.keyRows = m_descriptor.keyRows;
     info.keyCols = static_cast<std::uint8_t>(m_descriptor.gridColumns);
     info.jpegEncoded = true;
@@ -247,7 +255,7 @@ void SidecarStreamDockDevice::setKeyImage(std::uint8_t keyIndex,
         return;
     }
     writeCommand(sidecar::buildSetImage(effectiveSerial(),
-                                        hwKeyForKeyIndex(keyIndex),
+                                        hwKeyForKeyIndex(m_descriptor, keyIndex),
                                         /*touchzone=*/false,
                                         width,
                                         height,
