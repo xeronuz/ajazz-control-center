@@ -257,11 +257,12 @@ async fn handle_keep_alive(devices: &DeviceMap, cmd: &serde_json::Value, allow_o
 /// matching the physical key bezel aperture and hardware column offsets.
 ///
 /// Hardware confirmation (2026-11-13):
+/// AKP032 (PID 0x3016) hardware calibration:
 /// - Panel wire cell size is 128x128 px.
-/// - Physical transparent keycap window is ~104x104 px.
-/// - Vertical bezel covers top Y=0..16; bottom Y=124..127 is visible. Offset Y=18 centers the aperture.
-/// - Horizontal: Col 0 (key % 8 == 0) is bounded by the outer casing (Offset X=15).
-///   Inner columns 1..7 (key % 8 != 0) are shifted rightward by the plastic grid ribs (Offset X=20).
+/// - Physical transparent keycap window calibration:
+///   - Column 0 (leftmost): aperture 107x87 px at offset (21, 40). Bounded by outer casing bezel.
+///   - Inner columns 1..7: aperture 83x87 px at offset (44, 41). Centered within interior keycap ribs.
+/// - Hardware applies Rot180 before transmitting to device.
 fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
     let (w, h) = (img.width(), img.height());
     // 1x1 is a solid color fill (setKeyColor) -> let mirajazz resize to 128x128 directly
@@ -271,10 +272,16 @@ fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
 
     let target_w = 128u32;
     let target_h = 128u32;
-    let aperture_w = 104u32;
-    let aperture_h = 104u32;
 
-    // Proportionally fit inside the 104x104 aperture
+    // Col 0 (leftmost) vs Col 1..7 (inner columns)
+    let col = hw_key % 8;
+    let (offset_x, offset_y, aperture_w, aperture_h) = if col == 0 {
+        (21u32, 40u32, 107u32, 87u32)
+    } else {
+        (44u32, 41u32, 83u32, 87u32)
+    };
+
+    // Fit inside the hardware aperture
     let fitted = if w == aperture_w && h == aperture_h {
         img
     } else {
@@ -283,11 +290,6 @@ fn prepare_akp032_key_image(img: DynamicImage, hw_key: u8) -> DynamicImage {
 
     let fw = fitted.width();
     let fh = fitted.height();
-
-    // Col 0 (leftmost) vs Col 1..7 (inner columns)
-    let col = hw_key % 8;
-    let offset_x = if col == 0 { 15u32 } else { 20u32 };
-    let offset_y = 18u32;
 
     let rgba_img = fitted.to_rgba8();
     let p = rgba_img.get_pixel(0, 0);
@@ -465,25 +467,26 @@ mod tests {
     }
 
     #[test]
-    fn prepare_akp032_key_image_centers_104x104_to_128x128() {
+    fn prepare_akp032_key_image_centers_apertures_to_128x128() {
         use image::{DynamicImage, RgbaImage};
         let red = image::Rgba([255, 0, 0, 255]);
-        let src = DynamicImage::ImageRgba8(RgbaImage::from_pixel(104, 104, red));
-        // Col 0 (key 0)
-        let out0 = super::prepare_akp032_key_image(src.clone(), 0);
+        // Col 0 (key 0): 107x87 at (21, 40)
+        let src0 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(107, 87, red));
+        let out0 = super::prepare_akp032_key_image(src0, 0);
         assert_eq!(out0.width(), 128);
         assert_eq!(out0.height(), 128);
         let rgba0 = out0.to_rgba8();
-        assert_eq!(*rgba0.get_pixel(15, 18), red);
-        assert_eq!(*rgba0.get_pixel(15 + 103, 18 + 103), red);
+        assert_eq!(*rgba0.get_pixel(21, 40), red);
+        assert_eq!(*rgba0.get_pixel(21 + 107 - 1, 40 + 87 - 1), red);
 
-        // Col 1 (key 1)
-        let out1 = super::prepare_akp032_key_image(src, 1);
+        // Col 1 (key 1): 83x87 at (44, 41)
+        let src1 = DynamicImage::ImageRgba8(RgbaImage::from_pixel(83, 87, red));
+        let out1 = super::prepare_akp032_key_image(src1, 1);
         assert_eq!(out1.width(), 128);
         assert_eq!(out1.height(), 128);
         let rgba1 = out1.to_rgba8();
-        assert_eq!(*rgba1.get_pixel(20, 18), red);
-        assert_eq!(*rgba1.get_pixel(20 + 103, 18 + 103), red);
+        assert_eq!(*rgba1.get_pixel(44, 41), red);
+        assert_eq!(*rgba1.get_pixel(44 + 83 - 1, 41 + 87 - 1), red);
     }
 
     #[test]
