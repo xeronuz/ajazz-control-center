@@ -23,10 +23,18 @@ namespace ajazz::app {
 namespace {
 
 /// Map our 1-based key index to the mirajazz hardware index.
-/// AKP032 (32 keys, 4 rows x 8 cols) uses natural top-to-bottom, left-to-right indexing (1..32 ->
-/// 0..31). AKP05 (2x5: 1..5 top row, 6..10 bottom): top row 10..14, bottom 5..9.
+/// Map our 1-based key index to the mirajazz hardware index.
+/// AKP032 (4x8 grid): hardware addresses rows bottom-up: hwKeyId = (3 - r) * 8 + c (0..31).
+/// AKP05 (2x5: 1..5 top row, 6..10 bottom): top row 10..14, bottom 5..9.
 [[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::string_view codename, std::uint8_t oneBased) {
     if (codename.rfind("akp032", 0) == 0) {
+        if (oneBased >= 1 && oneBased <= 32) {
+            std::uint8_t const zero = static_cast<std::uint8_t>(oneBased - 1);
+            std::uint8_t const row = zero / 8;
+            std::uint8_t const col = zero % 8;
+            std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
+            return static_cast<std::uint8_t>(invertedRow * 8 + col);
+        }
         return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
     }
     if (codename.rfind("akp05", 0) == 0) {
@@ -51,7 +59,12 @@ mapSidecarInput(std::string_view codename, std::uint8_t code, std::uint8_t state
 
     if (codename.rfind("akp032", 0) == 0) {
         if (code >= 1 && code <= 32) {
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
+            std::uint8_t const zero = static_cast<std::uint8_t>(code - 1);
+            std::uint8_t const row = zero / 8;
+            std::uint8_t const col = zero % 8;
+            std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
+            std::uint8_t const mappedCode = static_cast<std::uint8_t>(invertedRow * 8 + col + 1);
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, mappedCode, state};
             return e;
         }
         switch (code) {
@@ -356,7 +369,7 @@ core::EncoderInfo SidecarStreamDockDevice::encoderInfo() const noexcept {
     core::EncoderInfo info{};
     info.count = static_cast<std::uint8_t>(m_descriptor.encoderCount);
     info.pressable = true;
-    info.hasScreens = true;
+    info.hasScreens = m_descriptor.codename.rfind("akp032", 0) != 0;
     info.stepsPerRevolution = 0; // endless
     return info;
 }
@@ -366,6 +379,11 @@ void SidecarStreamDockDevice::setEncoderImage(std::uint8_t index,
                                               std::uint16_t width,
                                               std::uint16_t height) {
     if (!isOpen()) {
+        return;
+    }
+    if (m_descriptor.codename.rfind("akp032", 0) == 0) {
+        // AKP032 rotary/rocker encoders are physical switches with NO integrated LCD display.
+        // Never paint encoder images to avoid overwriting button tiles on the main screen.
         return;
     }
     // Encoder touch zones are mirajazz hardware indices 0..3.
@@ -391,7 +409,8 @@ bool SidecarStreamDockDevice::setTouchStripImage(std::span<std::uint8_t const> r
                                                  std::uint16_t /*y*/,
                                                  std::uint16_t /*rectWidth*/,
                                                  std::uint16_t /*rectHeight*/) {
-    if (!isOpen() || location >= m_descriptor.touchZoneCount) {
+    if (!isOpen() || location >= m_descriptor.touchZoneCount ||
+        m_descriptor.codename.rfind("akp032", 0) == 0) {
         return false;
     }
     // Zone `location` maps to the sidecar's touch-zone set_image (index-addressed

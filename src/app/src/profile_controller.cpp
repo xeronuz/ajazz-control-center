@@ -1647,6 +1647,9 @@ bool ProfileController::setInstanceStateVisual(QString const& controller,
     if (static_cast<std::size_t>(stateIndex) >= inst.states.size()) {
         inst.states.resize(static_cast<std::size_t>(stateIndex) + 1);
     }
+    if (inst.states[static_cast<std::size_t>(stateIndex)].visual == visual) {
+        return false;
+    }
     inst.states[static_cast<std::size_t>(stateIndex)].visual = visual;
     // Keep the legacy single-visual mirror in sync when editing the CURRENT
     // state, so pre-instance render paths (device repaint) follow the edit.

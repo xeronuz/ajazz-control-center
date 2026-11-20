@@ -287,6 +287,10 @@ async fn handle_set_image(devices: &DeviceMap, cmd: &serde_json::Value, allow_ou
         let guard = devices.lock().await;
         match guard.get(serial) {
             Some(e) => {
+                if touchzone && e.family == Family::Akp032 {
+                    emit(serde_json::json!({"event":"ok","cmd":"set_image","ignored":"akp032 has no touch zones"}));
+                    return;
+                }
                 let fmt = if touchzone {
                     zone_image_format()
                 } else {
