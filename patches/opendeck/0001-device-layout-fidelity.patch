@@ -3,7 +3,7 @@ index e97db8a..349ec0f 100644
 --- a/src/components/DeviceView.svelte
 +++ b/src/components/DeviceView.svelte
 @@ -82,11 +82,11 @@
- 
+
  	$: gridRowLengths = [
  		...Array(device.rows).fill(device.columns),
 -		...(device.encoders > 0 ? [device.encoders] : []),
@@ -14,7 +14,7 @@ index e97db8a..349ec0f 100644
 -	$: touchpointRowIndex = device.rows + (device.encoders > 0 ? 1 : 0);
 +	$: touchpointRowIndex = device.rows;
 +	$: encoderRowIndex = device.rows + (device.touchpoints > 0 ? 1 : 0);
- 
+
  	function flatIndexFromRowCol(row: number, col: number): number {
  		let index = 0;
 @@ -174,7 +174,7 @@
@@ -65,7 +65,7 @@ index e97db8a..349ec0f 100644
 -			{/each}
 -		</div>
 +			{/if}
- 
+
 -		<div class="flex flex-row" role="row">
 -			{#each { length: device.encoders } as _, i}
 -				<Key
@@ -101,7 +101,7 @@ index e97db8a..349ec0f 100644
 +					</div>
 +				{/each}
 +			</div>
- 
+
 -		<div class="flex flex-row" role="row">
 -			{#each { length: device.touchpoints } as _, i}
 -				<Key
@@ -195,7 +195,7 @@ index 6629c34..7b83bc6 100644
  		const sl = structuredClone(slot);
  		if (!sl) {
 @@ -186,17 +193,17 @@
- 
+
  <div
  	class="relative"
 -	style={`transform: scale(${(112 /* desired inner size */ / size) * scale});`}
