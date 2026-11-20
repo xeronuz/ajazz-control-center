@@ -256,6 +256,13 @@ Q_SIGNALS:
     void pageNavRequested(int direction);
 
     /**
+     * @brief Emitted when profile rotation/navigation is requested.
+     *
+     * @param direction -1 = prev profile, +1 = next profile.
+     */
+    void profileNavRequested(int direction);
+
+    /**
      * @brief Observable hook for encoder press -> synthetic release pairing.
      *
      * Emitted immediately after synthesising the release that the hardware

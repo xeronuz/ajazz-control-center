@@ -56,38 +56,35 @@ mapSidecarInput(std::string_view codename, std::uint8_t code, std::uint8_t state
 
     if (codename.rfind("akp032", 0) == 0) {
         if (code >= 1 && code <= 32) {
-            std::uint8_t r_hw = (code - 1) / 8;
-            std::uint8_t c_hw = (code - 1) % 8;
-            std::uint8_t uiKey = static_cast<std::uint8_t>((3 - r_hw) * 8 + c_hw + 1);
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, uiKey, state};
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
             return e;
         }
         switch (code) {
-        case 0x21: // Left encoder CCW (step -1)
+        case 0x21: // Left rocker UP (-1)
             if (state != 1)
                 return std::nullopt;
             e = {Kind::EncoderTurned, 0, -1};
             return e;
-        case 0x22: // Left encoder CW (step +1)
+        case 0x22: // Left rocker CENTER CLICK
+            e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 0, state};
+            return e;
+        case 0x23: // Left rocker DOWN (+1)
             if (state != 1)
                 return std::nullopt;
             e = {Kind::EncoderTurned, 0, 1};
             return e;
-        case 0x23: // Left encoder click (press/release)
-            e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 0, state};
-            return e;
-        case 0x24: // Right encoder CCW (step -1)
+        case 0x24: // Right rocker UP (-1)
             if (state != 1)
                 return std::nullopt;
             e = {Kind::EncoderTurned, 1, -1};
             return e;
-        case 0x25: // Right encoder CW (step +1)
+        case 0x25: // Right rocker CENTER CLICK
+            e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 1, state};
+            return e;
+        case 0x26: // Right rocker DOWN (+1)
             if (state != 1)
                 return std::nullopt;
             e = {Kind::EncoderTurned, 1, 1};
-            return e;
-        case 0x26: // Right encoder click (press/release)
-            e = {state ? Kind::EncoderPressed : Kind::EncoderReleased, 1, state};
             return e;
         default:
             return std::nullopt;

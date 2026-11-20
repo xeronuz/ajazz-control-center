@@ -698,6 +698,37 @@ Application::Application(QObject* parent)
                      m_streamDockControl.get(),
                      &StreamDockControlService::navigatePage);
 
+    // Wire profileNavRequested -> cycle profile (AKP032 side rocker wheel).
+    QObject::connect(
+        m_streamDockInput.get(),
+        &StreamDockInputService::profileNavRequested,
+        this,
+        [this](int direction) {
+            if (!m_profileController) {
+                return;
+            }
+            QString const device =
+                QString::fromStdString(m_profileController->activeProfile().deviceCodename);
+            QVariantList const profiles = m_profileController->profilesForDevice(device);
+            if (profiles.size() < 2) {
+                return;
+            }
+            QString const activeId = m_profileController->activeProfileId();
+            for (qsizetype i = 0; i < profiles.size(); ++i) {
+                if (profiles[i].toMap().value(QStringLiteral("id")).toString() == activeId) {
+                    qsizetype const targetIdx = (direction >= 0)
+                                                    ? (i + 1) % profiles.size()
+                                                    : (i + profiles.size() - 1) % profiles.size();
+                    QString const targetId =
+                        profiles[targetIdx].toMap().value(QStringLiteral("id")).toString();
+                    m_profileController->loadProfileById(targetId);
+                    return;
+                }
+            }
+            m_profileController->loadProfileById(
+                profiles.first().toMap().value(QStringLiteral("id")).toString());
+        });
+
     // Phase 32-03 (BIND-05/07): Toggle Action cycle hook. A built-in Toggle press
     // resolves at StreamDockInputService::dispatch (dispatchToggle); the state
     // mutation needs the mutable Profile, owned only by ProfileController. Wire the

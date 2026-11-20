@@ -292,10 +292,29 @@ void StreamDockInputService::dispatch(core::DeviceEvent const& ev) {
 
     // ---- Encoder events (INPUT-04) ---------------------------------------
     case core::DeviceEvent::Kind::EncoderTurned:
+        if (m_activeDeviceId == QStringLiteral("akp032")) {
+            // Both left and right rocker wheels navigate profiles
+            emit profileNavRequested(ev.value);
+            break;
+        }
         onEncoderTurned(ev.index, ev.value);
         break;
 
     case core::DeviceEvent::Kind::EncoderPressed:
+        if (m_activeDeviceId == QStringLiteral("akp032")) {
+            if (auto it = prof.encoders.find(ev.index);
+                it != prof.encoders.end() && !it->second.onPress.empty()) {
+                if (isToggleAction(it->second.instance)) {
+                    dispatchToggle(QStringLiteral("Encoder"), ev.index);
+                } else {
+                    runPressBinding(*m_engine, it->second, it->second.onPress);
+                }
+            } else {
+                emit profileNavRequested(1);
+            }
+            synthesiseEncoderRelease(ev.index);
+            break;
+        }
         // Run the press chain, then synthesise the paired release immediately.
         // AKP05 is press-only (akp05.md:76) so the synthesised release is the
         // only release it ever gets. AKP03 v3 firmware sends a real wire release
