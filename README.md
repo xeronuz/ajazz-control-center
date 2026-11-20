@@ -113,6 +113,7 @@ live under [`docs/protocols/`](docs/protocols/).
 
 | Device | USB | Status | Features | Notes |
 |--------|-----|--------|----------|-------|
+| [AJAZZ AKP032]() | `0x0300:0x3016` | 🟢 functional | Per-key display, Macros, Firmware version | 32 LCD keys (8x4 grid, continuous 1024x600 LCD panel). 128x150 per-key viewports, 86x86 symmetric apertures, protocol version 3 (1024-byte packets). |
 | [AJAZZ AKP153 / Mirabox HSV293S](docs/protocols/streamdeck/akp153.md) | `0x0300:0x1001` | 🟢 functional | Per-key display, RGB backlight, Macros, Firmware version, Host-settable clock (scaffolded) | Reference 3x5 grid; 85x85 JPEG keys (Rot90+mirror). Legacy VID:PID kept for compatibility; the canonical Mirabox V1 pair is 0x5548:0x6674 (also registered). |
 | [AJAZZ AKP153 (Mirabox V1 firmware)](docs/protocols/streamdeck/akp153.md) | `0x5548:0x6674` | 🟢 functional | Per-key display, RGB backlight, Macros, Firmware version, Host-settable clock (scaffolded) | Canonical USB pair per ajazz-sdk for the AKP153 with Mirabox V1 firmware. |
 | [AJAZZ AKP153E (China variant)](docs/protocols/streamdeck/akp153.md) | `0x0300:0x1002` | 🟢 functional | Per-key display, RGB backlight, Macros, Firmware version, Host-settable clock (scaffolded) | Legacy VID:PID; canonical AKP153E PID per ajazz-sdk is 0x1010 (also registered as `akp153e_v2`). |

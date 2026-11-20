@@ -56,6 +56,17 @@ devices:
   # See docs/protocols/streamdeck/_research-sources.md for the source tags
   # cited in the protocol docs and src/devices/streamdeck/src/register.cpp.
 
+  - codename: akp032
+    family: streamdeck
+    name: "AJAZZ AKP032"
+    vid: "0x0300"
+    pid: "0x3016"
+    keys: 32
+    encoders: 0
+    maturity: functional
+    capabilities: [display, macros, firmware]
+    notes: "32 LCD keys (8x4 grid, continuous 1024x600 LCD panel). 128x150 per-key viewports, 86x86 symmetric apertures, protocol version 3 (1024-byte packets)."
+
   - codename: akp153
     family: streamdeck
     name: "AJAZZ AKP153 / Mirabox HSV293S"

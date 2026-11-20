@@ -19,6 +19,7 @@ namespace ajazz::app::generated {
 
 inline QHash<QString, QString> deviceMaturityByCodename() {
     return QHash<QString, QString>{
+        {QStringLiteral("akp032"), QStringLiteral("functional")},
         {QStringLiteral("akp153"), QStringLiteral("functional")},
         {QStringLiteral("akp153_v1"), QStringLiteral("functional")},
         {QStringLiteral("akp153e"), QStringLiteral("functional")},

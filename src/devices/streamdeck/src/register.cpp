@@ -90,7 +90,20 @@ std::vector<core::DeviceDescriptor> streamDockSidecarDescriptors() {
                                 .keyRows = 2,
                                 .touchZoneCount = 4};
     };
+    auto akp032 = [](std::uint16_t vid, std::uint16_t pid, char const* model, char const* code) {
+        return DeviceDescriptor{.vendorId = vid,
+                                .productId = pid,
+                                .family = DeviceFamily::StreamDeck,
+                                .model = model,
+                                .codename = code,
+                                .keyCount = 32,
+                                .gridColumns = 8,
+                                .encoderCount = 0,
+                                .keyRows = 4};
+    };
 
+    // AKP032 (32 keys, 8x4 grid, 1024x600 LCD panel).
+    out.push_back(akp032(0x0300, 0x3016, "AJAZZ AKP032", "akp032"));
     // AKP153 family (15 keys, no encoders). 0x0300:0x1001 wins over AKP03.
     out.push_back(akp153(0x0300, 0x1001, "AJAZZ AKP153 / Mirabox HSV293S", "akp153"));
     out.push_back(akp153(0x0300, 0x1002, "AJAZZ AKP153E", "akp153e"));

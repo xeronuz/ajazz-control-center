@@ -22,17 +22,25 @@ namespace ajazz::app {
 
 namespace {
 
-/// Map our 1-based key index (2x5: 1..5 top row, 6..10 bottom) to the mirajazz
-/// hardware index (opendeck mappings.rs: top row 10..14, bottom 5..9).
-/// PROVISIONAL — verify against the panel in Slice 4 (the render_test photo
-/// confirmed the raw index->surface mapping renders; this row remap is the
-/// piece that pairs our grid order to it).
-[[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::uint8_t oneBased) {
-    if (oneBased >= 1 && oneBased <= 5) {
-        return static_cast<std::uint8_t>(oneBased + 9); // 1->10 .. 5->14
+/// Map our 1-based key index to the mirajazz hardware index.
+/// AKP032 (4x8 grid): rows are reversed in hardware: hwKeyId = (3 - r) * 8 + c + 1.
+/// AKP05 (2x5: 1..5 top row, 6..10 bottom): top row 10..14, bottom 5..9.
+[[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::string_view codename, std::uint8_t oneBased) {
+    if (codename.rfind("akp032", 0) == 0) {
+        if (oneBased >= 1 && oneBased <= 32) {
+            std::uint8_t r = (oneBased - 1) / 8;
+            std::uint8_t c = (oneBased - 1) % 8;
+            return static_cast<std::uint8_t>((3 - r) * 8 + c + 1);
+        }
+        return oneBased;
     }
-    if (oneBased >= 6 && oneBased <= 10) {
-        return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
+    if (codename.rfind("akp05", 0) == 0) {
+        if (oneBased >= 1 && oneBased <= 5) {
+            return static_cast<std::uint8_t>(oneBased + 9); // 1->10 .. 5->14
+        }
+        if (oneBased >= 6 && oneBased <= 10) {
+            return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
+        }
     }
     return oneBased;
 }
@@ -41,10 +49,22 @@ namespace {
 ///
 /// Codes follow opendeck-akp05's N4-derived mapping (inputs.rs) — PROVISIONAL
 /// for the AKP05 (the demo unit emits no input; calibrate on a retail unit).
-[[nodiscard]] std::optional<core::DeviceEvent> mapSidecarInput(std::uint8_t code,
+[[nodiscard]] std::optional<core::DeviceEvent> mapSidecarInput(std::string_view codename,
+                                                               std::uint8_t code,
                                                                std::uint8_t state) {
     using Kind = core::DeviceEvent::Kind;
     core::DeviceEvent e{};
+
+    if (codename.rfind("akp032", 0) == 0) {
+        if (code >= 1 && code <= 32) {
+            std::uint8_t r_hw = (code - 1) / 8;
+            std::uint8_t c_hw = (code - 1) % 8;
+            std::uint8_t uiKey = static_cast<std::uint8_t>((3 - r_hw) * 8 + c_hw + 1);
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, uiKey, state};
+            return e;
+        }
+        return std::nullopt;
+    }
 
     switch (code) {
     // Encoder twist: low byte = -1, high byte = +1, per encoder.
@@ -231,8 +251,19 @@ std::size_t SidecarStreamDockDevice::poll() {
 
 core::DisplayInfo SidecarStreamDockDevice::displayInfo() const noexcept {
     core::DisplayInfo info{};
-    info.widthPx = 112;
-    info.heightPx = 112;
+    if (m_descriptor.codename.rfind("akp032", 0) == 0) {
+        info.widthPx = 128;
+        info.heightPx = 150;
+    } else if (m_descriptor.codename.rfind("akp03", 0) == 0) {
+        info.widthPx = 60;
+        info.heightPx = 60;
+    } else if (m_descriptor.codename.rfind("akp153", 0) == 0) {
+        info.widthPx = 85;
+        info.heightPx = 85;
+    } else {
+        info.widthPx = 112;
+        info.heightPx = 112;
+    }
     info.keyRows = m_descriptor.keyRows;
     info.keyCols = static_cast<std::uint8_t>(m_descriptor.gridColumns);
     info.jpegEncoded = true;
@@ -247,7 +278,7 @@ void SidecarStreamDockDevice::setKeyImage(std::uint8_t keyIndex,
         return;
     }
     writeCommand(sidecar::buildSetImage(effectiveSerial(),
-                                        hwKeyForKeyIndex(keyIndex),
+                                        hwKeyForKeyIndex(m_descriptor.codename, keyIndex),
                                         /*touchzone=*/false,
                                         width,
                                         height,
@@ -409,7 +440,7 @@ void SidecarStreamDockDevice::handleLine(QByteArray const& line) {
         m_ready = true;
         break;
     case Type::Input: {
-        auto const devEv = mapSidecarInput(ev->code, ev->state);
+        auto const devEv = mapSidecarInput(m_descriptor.codename, ev->code, ev->state);
         // Log EVERY input frame the mirajazz sidecar delivers — mapped or not.
         // The AKP05 code map is PROVISIONAL (N4-derived; the 0x3004 demo unit
         // emits nothing to calibrate against), so an unmapped code was dropped

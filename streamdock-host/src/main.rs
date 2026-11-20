@@ -29,6 +29,8 @@ use kind::{Family, key_image_format, params_for, zone_image_format};
 /// mirajazz. Queried at both observed vendor usage pages (0xFFA0 on the AKP05E
 /// demo; 0xFF00 in the opendeck consumers) since firmware varies.
 const KNOWN_VID_PIDS: &[(u16, u16)] = &[
+    // AKP032
+    (0x0300, 0x3016),
     // AKP05 / N4
     (0x0300, 0x3004),
     (0x0300, 0x5001),
