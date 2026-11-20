@@ -1,9 +1,9 @@
 diff --git a/src/components/DeviceView.svelte b/src/components/DeviceView.svelte
-index e97db8a..60685ee 100644
+index e97db8a..349ec0f 100644
 --- a/src/components/DeviceView.svelte
 +++ b/src/components/DeviceView.svelte
 @@ -82,11 +82,11 @@
-
+ 
  	$: gridRowLengths = [
  		...Array(device.rows).fill(device.columns),
 -		...(device.encoders > 0 ? [device.encoders] : []),
@@ -14,7 +14,7 @@ index e97db8a..60685ee 100644
 -	$: touchpointRowIndex = device.rows + (device.encoders > 0 ? 1 : 0);
 +	$: touchpointRowIndex = device.rows;
 +	$: encoderRowIndex = device.rows + (device.touchpoints > 0 ? 1 : 0);
-
+ 
  	function flatIndexFromRowCol(row: number, col: number): number {
  		let index = 0;
 @@ -174,7 +174,7 @@
@@ -26,20 +26,46 @@ index e97db8a..60685ee 100644
  		class:items-center={device.columns <= 8}
  		class:hidden={$inspectedParentAction || selectedDevice != device.id}
  		class:device-fade-x={overflowsX && !overflowsY}
-@@ -200,7 +200,8 @@
- 							on:drop={(event) => handleDrop(event, "Keypad", (r * device.columns) + c)}
- 							on:dragstart={(event) => handleDragStart(event, "Keypad", (r * device.columns) + c)}
- 							{handlePaste}
+@@ -189,57 +189,101 @@
+ 		on:keydown|capture={handleGridKeydown}
+ 		on:focusin={handleGridFocusin}
+ 	>
+-		<div class="flex flex-col" role="rowgroup">
+-			{#each { length: device.rows } as _, r}
+-				<div class="flex flex-row" role="row">
+-					{#each { length: device.columns } as _, c}
+-						<Key
+-							context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (r * device.columns) + c }}
+-							bind:inslot={profile.keys[(r * device.columns) + c]}
+-							on:dragover={handleDragOver}
+-							on:drop={(event) => handleDrop(event, "Keypad", (r * device.columns) + c)}
+-							on:dragstart={(event) => handleDragStart(event, "Keypad", (r * device.columns) + c)}
+-							{handlePaste}
 -							size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
-+							size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
-+							outerSize={device.columns >= 8 ? 88 : null}
- 							label="Key {String.fromCharCode(65 + r)}{c + 1}"
- 							tabindex={focusedRow === r && focusedCol === c ? 0 : -1}
- 						/>
-@@ -209,22 +210,6 @@
- 			{/each}
- 		</div>
-
+-							label="Key {String.fromCharCode(65 + r)}{c + 1}"
+-							tabindex={focusedRow === r && focusedCol === c ? 0 : -1}
+-						/>
+-					{/each}
++		<div class="flex flex-row items-center justify-center gap-4">
++			{#if device.encoders === 2 && device.columns >= 8}
++				<div class="flex flex-col items-center justify-center" role="row">
++					<Key
++						context={{ device: device.id, profile: profile.id, controller: "Encoder", position: 0 }}
++						bind:inslot={profile.sliders[0]}
++						on:dragover={handleDragOver}
++						on:drop={(event) => handleDrop(event, "Encoder", 0)}
++						on:dragstart={(event) => handleDragStart(event, "Encoder", 0)}
++						{handlePaste}
++						size={device.columns >= 8 ? 96 : 144}
++						outerSize={device.columns >= 8 ? 88 : null}
++						label="Left Encoder"
++						tabindex={focusedRow === encoderRowIndex && focusedCol === 0 ? 0 : -1}
++					/>
+ 				</div>
+-			{/each}
+-		</div>
++			{/if}
+ 
 -		<div class="flex flex-row" role="row">
 -			{#each { length: device.encoders } as _, i}
 -				<Key
@@ -55,41 +81,99 @@ index e97db8a..60685ee 100644
 -				/>
 -			{/each}
 -		</div>
--
- 		<div class="flex flex-row" role="row">
- 			{#each { length: device.touchpoints } as _, i}
- 				<Key
-@@ -234,12 +219,31 @@
- 					on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
- 					on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
- 					{handlePaste}
++			<div class="flex flex-col" role="rowgroup">
++				{#each { length: device.rows } as _, r}
++					<div class="flex flex-row" role="row">
++						{#each { length: device.columns } as _, c}
++							<Key
++								context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (r * device.columns) + c }}
++								bind:inslot={profile.keys[(r * device.columns) + c]}
++								on:dragover={handleDragOver}
++								on:drop={(event) => handleDrop(event, "Keypad", (r * device.columns) + c)}
++								on:dragstart={(event) => handleDragStart(event, "Keypad", (r * device.columns) + c)}
++								{handlePaste}
++								size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++								outerSize={device.columns >= 8 ? 88 : null}
++								label="Key {String.fromCharCode(65 + r)}{c + 1}"
++								tabindex={focusedRow === r && focusedCol === c ? 0 : -1}
++							/>
++						{/each}
++					</div>
++				{/each}
++			</div>
+ 
+-		<div class="flex flex-row" role="row">
+-			{#each { length: device.touchpoints } as _, i}
+-				<Key
+-					context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (device.rows * device.columns) + i }}
+-					bind:inslot={profile.keys[(device.rows * device.columns) + i]}
+-					on:dragover={handleDragOver}
+-					on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
+-					on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
+-					{handlePaste}
 -					size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
-+					size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
-+					outerSize={device.columns >= 8 ? 88 : null}
- 					isTouchPoint
-+					height={device.columns >= 8 ? 48 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 96 : 72)}
- 					label="Touch point {i + 1}"
- 					tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
- 				/>
- 			{/each}
+-					isTouchPoint
+-					label="Touch point {i + 1}"
+-					tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
+-				/>
+-			{/each}
++			{#if device.encoders === 2 && device.columns >= 8}
++				<div class="flex flex-col items-center justify-center" role="row">
++					<Key
++						context={{ device: device.id, profile: profile.id, controller: "Encoder", position: 1 }}
++						bind:inslot={profile.sliders[1]}
++						on:dragover={handleDragOver}
++						on:drop={(event) => handleDrop(event, "Encoder", 1)}
++						on:dragstart={(event) => handleDragStart(event, "Encoder", 1)}
++						{handlePaste}
++						size={device.columns >= 8 ? 96 : 144}
++						outerSize={device.columns >= 8 ? 88 : null}
++						label="Right Encoder"
++						tabindex={focusedRow === encoderRowIndex && focusedCol === 1 ? 0 : -1}
++					/>
++				</div>
++			{/if}
  		</div>
 +
-+		<div class="flex flex-row" role="row">
-+			{#each { length: device.encoders } as _, i}
-+				<Key
-+					context={{ device: device.id, profile: profile.id, controller: "Encoder", position: i }}
-+					bind:inslot={profile.sliders[i]}
-+					on:dragover={handleDragOver}
-+					on:drop={(event) => handleDrop(event, "Encoder", i)}
-+					on:dragstart={(event) => handleDragStart(event, "Encoder", i)}
-+					{handlePaste}
-+					size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
-+					outerSize={device.columns >= 8 ? 88 : null}
-+					label="Encoder {i + 1}"
-+					tabindex={focusedRow === encoderRowIndex && focusedCol === i ? 0 : -1}
-+				/>
-+			{/each}
-+		</div>
++		{#if device.touchpoints > 0}
++			<div class="flex flex-row" role="row">
++				{#each { length: device.touchpoints } as _, i}
++					<Key
++						context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (device.rows * device.columns) + i }}
++						bind:inslot={profile.keys[(device.rows * device.columns) + i]}
++						on:dragover={handleDragOver}
++						on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
++						on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
++						{handlePaste}
++						size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++						outerSize={device.columns >= 8 ? 88 : null}
++						isTouchPoint
++						height={device.columns >= 8 ? 48 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 96 : 72)}
++						label="Touch point {i + 1}"
++						tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
++					/>
++				{/each}
++			</div>
++		{/if}
++
++		{#if !(device.encoders === 2 && device.columns >= 8) && device.encoders > 0}
++			<div class="flex flex-row" role="row">
++				{#each { length: device.encoders } as _, i}
++					<Key
++						context={{ device: device.id, profile: profile.id, controller: "Encoder", position: i }}
++						bind:inslot={profile.sliders[i]}
++						on:dragover={handleDragOver}
++						on:drop={(event) => handleDrop(event, "Encoder", i)}
++						on:dragstart={(event) => handleDragStart(event, "Encoder", i)}
++						{handlePaste}
++						size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++						outerSize={device.columns >= 8 ? 88 : null}
++						label="Encoder {i + 1}"
++						tabindex={focusedRow === encoderRowIndex && focusedCol === i ? 0 : -1}
++					/>
++				{/each}
++			</div>
++		{/if}
  	</div>
  {/key}
 diff --git a/src/components/Key.svelte b/src/components/Key.svelte
@@ -111,7 +195,7 @@ index 6629c34..7b83bc6 100644
  		const sl = structuredClone(slot);
  		if (!sl) {
 @@ -186,17 +193,17 @@
-
+ 
  <div
  	class="relative"
 -	style={`transform: scale(${(112 /* desired inner size */ / size) * scale});`}

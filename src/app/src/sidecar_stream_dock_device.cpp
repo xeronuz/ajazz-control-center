@@ -56,7 +56,10 @@ mapSidecarInput(std::string_view codename, std::uint8_t code, std::uint8_t state
 
     if (codename.rfind("akp032", 0) == 0) {
         if (code >= 1 && code <= 32) {
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
+            std::uint8_t r_hw = (code - 1) / 8;
+            std::uint8_t c_hw = (code - 1) % 8;
+            std::uint8_t uiKey = static_cast<std::uint8_t>((3 - r_hw) * 8 + c_hw + 1);
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, uiKey, state};
             return e;
         }
         switch (code) {
