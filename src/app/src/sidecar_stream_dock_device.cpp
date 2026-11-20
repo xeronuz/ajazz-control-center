@@ -23,16 +23,11 @@ namespace ajazz::app {
 namespace {
 
 /// Map our 1-based key index to the mirajazz hardware index.
-/// AKP032 (4x8 grid): rows are reversed in hardware: hwKeyId = (3 - r) * 8 + c + 1.
+/// AKP032 (32 keys, 4 rows x 8 cols) uses natural top-to-bottom, left-to-right indexing (1..32 -> 0..31).
 /// AKP05 (2x5: 1..5 top row, 6..10 bottom): top row 10..14, bottom 5..9.
 [[nodiscard]] std::uint8_t hwKeyForKeyIndex(std::string_view codename, std::uint8_t oneBased) {
     if (codename.rfind("akp032", 0) == 0) {
-        if (oneBased >= 1 && oneBased <= 32) {
-            std::uint8_t r = (oneBased - 1) / 8;
-            std::uint8_t c = (oneBased - 1) % 8;
-            return static_cast<std::uint8_t>((3 - r) * 8 + c + 1);
-        }
-        return oneBased;
+        return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
     }
     if (codename.rfind("akp05", 0) == 0) {
         if (oneBased >= 1 && oneBased <= 5) {
@@ -42,7 +37,7 @@ namespace {
             return static_cast<std::uint8_t>(oneBased - 1); // 6->5 .. 10->9
         }
     }
-    return oneBased;
+    return static_cast<std::uint8_t>(oneBased > 0 ? oneBased - 1 : 0);
 }
 
 /// Translate a sidecar (code,state) pair into a core::DeviceEvent.
