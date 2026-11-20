@@ -710,7 +710,8 @@ QString OpenDeckBridge::handle(QString const& command, QString const& argsJson) 
             }
         } else if (c.position >= keyCount) {
             if (c.device != QStringLiteral("akp032")) {
-                m_control->assignTouchStripZone(static_cast<std::uint8_t>(c.position - keyCount), img);
+                m_control->assignTouchStripZone(static_cast<std::uint8_t>(c.position - keyCount),
+                                                img);
             }
         } else {
             // assignKeyImage uses a 1-based key index.
