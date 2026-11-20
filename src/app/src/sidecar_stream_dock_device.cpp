@@ -49,9 +49,8 @@ namespace {
 ///
 /// Codes follow opendeck-akp05's N4-derived mapping (inputs.rs) — PROVISIONAL
 /// for the AKP05 (the demo unit emits no input; calibrate on a retail unit).
-[[nodiscard]] std::optional<core::DeviceEvent> mapSidecarInput(std::string_view codename,
-                                                               std::uint8_t code,
-                                                               std::uint8_t state) {
+[[nodiscard]] std::optional<core::DeviceEvent>
+mapSidecarInput(std::string_view codename, std::uint8_t code, std::uint8_t state) {
     using Kind = core::DeviceEvent::Kind;
     core::DeviceEvent e{};
 
