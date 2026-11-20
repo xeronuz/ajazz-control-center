@@ -682,7 +682,7 @@ QString OpenDeckBridge::handle(QString const& command, QString const& argsJson) 
         if (imgVal.isNull() || imgVal.toString().isEmpty()) {
             if (c.controller == QLatin1String("Keypad") && c.position < keyCount) {
                 m_control->clearKeyImage(static_cast<std::uint8_t>(c.position + 1));
-            } else {
+            } else if (c.device != QStringLiteral("akp032")) {
                 // Encoder/touch slot emptied (audit 4.4): there is no
                 // clearEncoderImage primitive, so paint the zone black — the
                 // strip otherwise kept showing the removed action's frame.
@@ -705,9 +705,13 @@ QString OpenDeckBridge::handle(QString const& command, QString const& argsJson) 
             return str(QJsonValue(QJsonValue::Null));
         }
         if (c.controller == QLatin1String("Encoder")) {
-            m_control->assignEncoderImage(static_cast<std::uint8_t>(c.position), img);
+            if (c.device != QStringLiteral("akp032")) {
+                m_control->assignEncoderImage(static_cast<std::uint8_t>(c.position), img);
+            }
         } else if (c.position >= keyCount) {
-            m_control->assignTouchStripZone(static_cast<std::uint8_t>(c.position - keyCount), img);
+            if (c.device != QStringLiteral("akp032")) {
+                m_control->assignTouchStripZone(static_cast<std::uint8_t>(c.position - keyCount), img);
+            }
         } else {
             // assignKeyImage uses a 1-based key index.
             m_control->assignKeyImage(static_cast<std::uint8_t>(c.position + 1), img);

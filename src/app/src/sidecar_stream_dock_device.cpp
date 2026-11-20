@@ -59,12 +59,7 @@ mapSidecarInput(std::string_view codename, std::uint8_t code, std::uint8_t state
 
     if (codename.rfind("akp032", 0) == 0) {
         if (code >= 1 && code <= 32) {
-            std::uint8_t const zero = static_cast<std::uint8_t>(code - 1);
-            std::uint8_t const row = zero / 8;
-            std::uint8_t const col = zero % 8;
-            std::uint8_t const invertedRow = static_cast<std::uint8_t>(3 - row);
-            std::uint8_t const mappedCode = static_cast<std::uint8_t>(invertedRow * 8 + col + 1);
-            e = {state ? Kind::KeyPressed : Kind::KeyReleased, mappedCode, state};
+            e = {state ? Kind::KeyPressed : Kind::KeyReleased, code, state};
             return e;
         }
         switch (code) {
@@ -248,6 +243,8 @@ void SidecarStreamDockDevice::open() {
                      m_process.get(),
                      [this]() { drainStdout(); });
     drainStdout(); // flush anything buffered between the loop exit and connect
+
+    clearKey(0xFF); // Blank all keys on connect so stale hardware frame buffer is cleared
 
     AJAZZ_LOG_INFO("sidecar", "device opened: {} (fw {})", m_descriptor.model, m_firmwareVersion);
 }

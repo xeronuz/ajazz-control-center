@@ -316,6 +316,9 @@ void StreamDockControlService::assignEncoderImage(std::uint8_t encoderIndex, QIm
     if (!m_activeDevice) {
         return;
     }
+    if (m_activeDevice->descriptor().codename.rfind("akp032", 0) == 0) {
+        return; // AKP032 rotary/rocker encoders have no integrated LCD screens
+    }
     // Pitfall 1 (T-23-04): null-check within 3 lines of the cast.
     auto* enc = dynamic_cast<core::IEncoderCapable*>(m_activeDevice.get());
     if (enc == nullptr) {
@@ -333,6 +336,9 @@ void StreamDockControlService::assignTouchStripZone(std::uint8_t zone, QImage co
     // WR-01: explicit m_activeDevice guard (defensive-depth parity with repaintPage).
     if (!m_activeDevice) {
         return;
+    }
+    if (m_activeDevice->descriptor().codename.rfind("akp032", 0) == 0) {
+        return; // AKP032 has no touch strip
     }
     // Pitfall 1 (T-23-04): null-check within 3 lines of the cast.
     auto* strip = dynamic_cast<core::ITouchStripDisplayCapable*>(m_activeDevice.get());
@@ -363,6 +369,9 @@ void StreamDockControlService::repaintEncodersFromProfile() {
     // capability guard to the assign methods -- WR-02).
     if (!m_activeDevice) {
         return;
+    }
+    if (m_activeDevice->descriptor().codename.rfind("akp032", 0) == 0) {
+        return; // AKP032 rotary/rocker encoders have no integrated LCD screens
     }
 
     if (!m_profileAccessor) {
@@ -458,9 +467,6 @@ void StreamDockControlService::repaintPage(QString const& pageId) {
     // "root" -> Profile::keys; other id -> look up in Profile::pages.
     std::unordered_map<std::uint16_t, core::Binding> const* bindingSet = nullptr;
     if (pageId == QStringLiteral("root") || pageId.isEmpty()) {
-        if (prof.keys.empty()) {
-            return; // no-op: root has no bindings
-        }
         bindingSet = &prof.keys;
     } else {
         // T-16c-01: use find(), not unguarded at() -- missing page is a no-op.
@@ -471,10 +477,20 @@ void StreamDockControlService::repaintPage(QString const& pageId) {
                            pageId.toStdString());
             return;
         }
-        if (it->second.keys.empty()) {
-            return; // page exists but has no bindings -- no-op
-        }
         bindingSet = &it->second.keys;
+    }
+
+    // Ensure all unassigned keys on the device are cleared to black so stale
+    // renders or previous session artifacts do not linger on the panel.
+    auto const totalKeyCount = m_activeDevice->descriptor().keyCount;
+    for (std::uint8_t k = 1; k <= static_cast<std::uint8_t>(totalKeyCount); ++k) {
+        if (bindingSet->find(static_cast<std::uint16_t>(k - 1)) == bindingSet->end()) {
+            clearKeyImage(k);
+        }
+    }
+
+    if (bindingSet->empty()) {
+        return;
     }
 
     // Key-index mapping: Profile::keys uses 0-based std::uint16_t map keys;
