@@ -44,8 +44,8 @@ pub fn params_for(vid: u16, pid: u16) -> Option<DeviceParams> {
         Some(DeviceParams { family, protocol_version, key_count, encoder_count, human_name })
     };
     match (vid, pid) {
-        // --- AKP032 (pv3, 32 keys, no enc) ---
-        (0x0300, 0x3016) => p(Family::Akp032, 3, 32, 0, "Ajazz AKP032"),
+        // --- AKP032 (pv3, 32 keys, 2 encoders) ---
+        (0x0300, 0x3016) => p(Family::Akp032, 3, 32, 2, "Ajazz AKP032"),
         // --- AKP05 / N4 (pv3, 10 keys + 4 enc; 15 mirajazz surfaces) ---
         // hardware-confirmed on 0x0300:0x3004.
         (0x0300, 0x3004) => p(Family::Akp05, 3, 15, 4, "Ajazz AKP05E"),
@@ -164,11 +164,11 @@ mod tests {
     }
 
     #[test]
-    fn akp032_is_pv3_no_encoders_32_keys() {
+    fn akp032_is_pv3_2_encoders_32_keys() {
         let p = params_for(0x0300, 0x3016).expect("AKP032 known");
         assert_eq!(p.family, Family::Akp032);
         assert_eq!(p.protocol_version, 3);
-        assert_eq!(p.encoder_count, 0);
+        assert_eq!(p.encoder_count, 2);
         assert_eq!(p.key_count, 32);
         let f = key_image_format(Family::Akp032);
         assert_eq!(f.size, (86, 86));

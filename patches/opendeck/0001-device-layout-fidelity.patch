@@ -1,9 +1,9 @@
 diff --git a/src/components/DeviceView.svelte b/src/components/DeviceView.svelte
-index e97db8a..c9f4ac5 100644
+index e97db8a..60685ee 100644
 --- a/src/components/DeviceView.svelte
 +++ b/src/components/DeviceView.svelte
 @@ -82,11 +82,11 @@
-
+ 
  	$: gridRowLengths = [
  		...Array(device.rows).fill(device.columns),
 -		...(device.encoders > 0 ? [device.encoders] : []),
@@ -14,81 +14,114 @@ index e97db8a..c9f4ac5 100644
 -	$: touchpointRowIndex = device.rows + (device.encoders > 0 ? 1 : 0);
 +	$: touchpointRowIndex = device.rows;
 +	$: encoderRowIndex = device.rows + (device.touchpoints > 0 ? 1 : 0);
-
+ 
  	function flatIndexFromRowCol(row: number, col: number): number {
  		let index = 0;
-@@ -210,34 +210,35 @@
+@@ -174,7 +174,7 @@
+ {#key device}
+ 	<span id="grid-description" class="sr-only">Use arrow keys to navigate between keys. Moving to a key will display its property inspector.</span>
+ 	<div
+-		class="flex flex-col justify-center grow px-16 py-6 overflow-auto"
++		class="flex flex-col justify-center grow px-4 py-4 overflow-auto"
+ 		class:items-center={device.columns <= 8}
+ 		class:hidden={$inspectedParentAction || selectedDevice != device.id}
+ 		class:device-fade-x={overflowsX && !overflowsY}
+@@ -200,7 +200,8 @@
+ 							on:drop={(event) => handleDrop(event, "Keypad", (r * device.columns) + c)}
+ 							on:dragstart={(event) => handleDragStart(event, "Keypad", (r * device.columns) + c)}
+ 							{handlePaste}
+-							size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
++							size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++							outerSize={device.columns >= 8 ? 88 : null}
+ 							label="Key {String.fromCharCode(65 + r)}{c + 1}"
+ 							tabindex={focusedRow === r && focusedCol === c ? 0 : -1}
+ 						/>
+@@ -209,22 +210,6 @@
+ 			{/each}
  		</div>
-
- 		<div class="flex flex-row" role="row">
+ 
+-		<div class="flex flex-row" role="row">
 -			{#each { length: device.encoders } as _, i}
-+			{#each { length: device.touchpoints } as _, i}
- 				<Key
+-				<Key
 -					context={{ device: device.id, profile: profile.id, controller: "Encoder", position: i }}
 -					bind:inslot={profile.sliders[i]}
-+					context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (device.rows * device.columns) + i }}
-+					bind:inslot={profile.keys[(device.rows * device.columns) + i]}
- 					on:dragover={handleDragOver}
+-					on:dragover={handleDragOver}
 -					on:drop={(event) => handleDrop(event, "Encoder", i)}
 -					on:dragstart={(event) => handleDragStart(event, "Encoder", i)}
-+					on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
-+					on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
- 					{handlePaste}
- 					size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
+-					{handlePaste}
+-					size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
 -					label="Encoder {i + 1}"
 -					tabindex={focusedRow === encoderRowIndex && focusedCol === i ? 0 : -1}
-+					isTouchPoint
-+					height={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 96 : 72}
-+					label="Touch point {i + 1}"
-+					tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
+-				/>
+-			{/each}
+-		</div>
+-
+ 		<div class="flex flex-row" role="row">
+ 			{#each { length: device.touchpoints } as _, i}
+ 				<Key
+@@ -234,12 +219,31 @@
+ 					on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
+ 					on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
+ 					{handlePaste}
+-					size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
++					size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++					outerSize={device.columns >= 8 ? 88 : null}
+ 					isTouchPoint
++					height={device.columns >= 8 ? 48 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 96 : 72)}
+ 					label="Touch point {i + 1}"
+ 					tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
  				/>
  			{/each}
  		</div>
-
- 		<div class="flex flex-row" role="row">
--			{#each { length: device.touchpoints } as _, i}
++
++		<div class="flex flex-row" role="row">
 +			{#each { length: device.encoders } as _, i}
- 				<Key
--					context={{ device: device.id, profile: profile.id, controller: "Keypad", position: (device.rows * device.columns) + i }}
--					bind:inslot={profile.keys[(device.rows * device.columns) + i]}
++				<Key
 +					context={{ device: device.id, profile: profile.id, controller: "Encoder", position: i }}
 +					bind:inslot={profile.sliders[i]}
- 					on:dragover={handleDragOver}
--					on:drop={(event) => handleDrop(event, "Keypad", (device.rows * device.columns) + i)}
--					on:dragstart={(event) => handleDragStart(event, "Keypad", (device.rows * device.columns) + i)}
++					on:dragover={handleDragOver}
 +					on:drop={(event) => handleDrop(event, "Encoder", i)}
 +					on:dragstart={(event) => handleDragStart(event, "Encoder", i)}
- 					{handlePaste}
- 					size={device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144}
--					isTouchPoint
--					label="Touch point {i + 1}"
--					tabindex={focusedRow === touchpointRowIndex && focusedCol === i ? 0 : -1}
++					{handlePaste}
++					size={device.columns >= 8 ? 96 : (device.id.startsWith("sd-") && device.rows == 4 && device.columns == 8 ? 192 : 144)}
++					outerSize={device.columns >= 8 ? 88 : null}
 +					label="Encoder {i + 1}"
 +					tabindex={focusedRow === encoderRowIndex && focusedCol === i ? 0 : -1}
- 				/>
- 			{/each}
- 		</div>
++				/>
++			{/each}
++		</div>
+ 	</div>
+ {/key}
 diff --git a/src/components/Key.svelte b/src/components/Key.svelte
-index 6629c34..a83b7f0 100644
+index 6629c34..7b83bc6 100644
 --- a/src/components/Key.svelte
 +++ b/src/components/Key.svelte
-@@ -146,6 +146,10 @@
+@@ -146,6 +146,13 @@
  	let canvas: HTMLCanvasElement;
  	let lock = new CanvasLock();
  	export let size = 144;
++	export let outerSize: number | null = null;
 +	// Touch-strip segments are physically rectangular (wider than tall);
 +	// when set, the canvas becomes size x height instead of a square.
 +	export let height: number | null = null;
 +	$: canvasHeight = height ?? size;
++	$: targetOuterSize = outerSize ?? (size < 120 ? Math.round(size * (132 / 144)) : 132);
++	$: targetInnerSize = Math.round(targetOuterSize * (112 / 132));
  	$: (async () => {
  		const sl = structuredClone(slot);
  		if (!sl) {
-@@ -191,12 +195,12 @@
+@@ -186,17 +193,17 @@
+ 
+ <div
+ 	class="relative"
+-	style={`transform: scale(${(112 /* desired inner size */ / size) * scale});`}
++	style={`transform: scale(${(targetInnerSize / size) * scale});`}
+ >
  	<canvas
  		bind:this={canvas}
  		class="relative border-3 border-neutral-700 rounded-3xl outline-none outline-offset-2 outline-blue-500"
 -		style={`margin: ${-((size + 3 * 2 /* border */ - 132 /* desired outer size */) / 2)}px;`}
-+		style={`margin: ${-((canvasHeight + 3 * 2 /* border */ - (132 * canvasHeight) / size) / 2)}px ${-((size + 3 * 2 /* border */ - 132 /* desired outer size */) / 2)}px;`}
++		style={`margin: ${-((canvasHeight + 3 * 2 /* border */ - (targetOuterSize * canvasHeight) / size) / 2)}px ${-((size + 3 * 2 /* border */ - targetOuterSize) / 2)}px;`}
  		class:outline-solid={active && ((slot && $inspectedInstance == slot.context) || (context && $inspectedInstance == context))}
  		class:rounded-full!={context?.controller == "Encoder"}
  		class:bg-black={slot != null}

@@ -98,7 +98,7 @@ std::vector<core::DeviceDescriptor> streamDockSidecarDescriptors() {
                                 .codename = code,
                                 .keyCount = 32,
                                 .gridColumns = 8,
-                                .encoderCount = 0,
+                                .encoderCount = 2,
                                 .keyRows = 4};
     };
 
